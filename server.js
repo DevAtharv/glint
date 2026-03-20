@@ -298,18 +298,18 @@ app.post('/api/import', async (req, res) => {
           const accessToken = tokenRes.data.access_token
           console.log('Got Spotify access token')
 
-          // Get playlist info
+          // Get playlist info with first 100 tracks
           const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
             headers: { 'Authorization': `Bearer ${accessToken}` },
-            params: { fields: 'name,images,tracks.total,tracks.items(track(name,artists(name),album(name,images)))' }
+            params: { fields: 'name,images,tracks.total,tracks.items(track(name,artists(name),album(name,images))),tracks.next' }
           })
           
           playlistName = playlistRes.data.name
           playlistCover = playlistRes.data.images?.[0]?.url || null
           const totalTracks = playlistRes.data.tracks.total
-          console.log(`Playlist: "${playlistName}" - ${totalTracks} tracks`)
+          console.log(`Playlist: "${playlistName}" - ${totalTracks} tracks total`)
 
-          // Get all tracks
+          // Get all tracks from first page
           rawTracks = []
           const firstTracks = playlistRes.data.tracks.items || []
           for (const item of firstTracks) {
@@ -320,29 +320,30 @@ app.post('/api/import', async (req, res) => {
               })
             }
           }
+          console.log(`Got ${rawTracks.length} tracks from first page`)
 
-          // Fetch remaining pages if more than 100 tracks
-          if (totalTracks > 100) {
-            for (let offset = 100; offset < totalTracks; offset += 100) {
-              const moreTracks = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` },
-                params: { limit: 100, offset, fields: 'items(track(name,artists(name)))' }
-              })
-              for (const item of moreTracks.data.items) {
-                if (item.track?.name) {
-                  rawTracks.push({
-                    title: item.track.name,
-                    artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
-                  })
-                }
+          // Fetch ALL remaining pages (paginate through the entire playlist)
+          let nextUrl = playlistRes.data.tracks.next
+          while (nextUrl) {
+            console.log(`Fetching more tracks... (${rawTracks.length}/${totalTracks})`)
+            const moreTracks = await axios.get(nextUrl, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            })
+            for (const item of moreTracks.data.items) {
+              if (item.track?.name) {
+                rawTracks.push({
+                  title: item.track.name,
+                  artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+                })
               }
             }
+            nextUrl = moreTracks.data.next
           }
 
-          console.log(`Got ${rawTracks.length} tracks from Spotify API`)
+          console.log(`Got ALL ${rawTracks.length} tracks from Spotify API!`)
         } catch (e) {
           console.error('Spotify API failed:', e.message)
-          // Fall through to web scraping
+          // Fall through to embed scraping
         }
       }
 
@@ -425,7 +426,8 @@ app.post('/api/import', async (req, res) => {
             }
           }
 
-          console.log(`Extracted ${rawTracks.length} tracks from embed page`)
+          console.log(`Extracted ${rawTracks.length} tracks from embed page (embed shows max 50 tracks)`)
+          console.log(`For ALL tracks, update your Spotify API credentials at: https://developer.spotify.com/dashboard`)
           if (rawTracks.length > 0) {
             console.log(`Sample: "${rawTracks[0].title}" by ${rawTracks[0].artist}`)
           }
