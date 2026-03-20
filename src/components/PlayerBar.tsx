@@ -38,6 +38,12 @@ export default function PlayerBar({
   // Check if track has a valid YouTube ID
   const canPlay = !!track.youtubeId
 
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = ((e.clientX - rect.left) / rect.width) * 100
+    onSeek(Math.max(0, Math.min(100, pct)))
+  }
+
   return (
     <div style={{ gridColumn: 2, background: '#0E1018', borderTop: '1px solid rgba(255,255,255,.06)', display: 'flex', flexDirection: 'column' }}>
       {!canPlay && (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface Props {
   videoId: string | null
@@ -11,82 +11,83 @@ interface Props {
 }
 
 export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDuration, onEnded, seekTo }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const timerRef = useRef<any>(null)
   const prevVideoId = useRef<string | null>(null)
 
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-  }
-
-  // Create or update iframe when videoId changes
+  // Create container on mount
   useEffect(() => {
-    if (!videoId) return
-    if (videoId === prevVideoId.current) return
-    
-    prevVideoId.current = videoId
-    stopTimer()
+    // Remove any existing container
+    const existing = document.getElementById('yt-player-container')
+    if (existing) existing.remove()
 
-    // Remove old iframe
-    const oldContainer = document.getElementById('yt-embed-container')
-    if (oldContainer) oldContainer.remove()
-
-    // Create hidden iframe for audio playback
+    // Create a visible container for the YouTube player
     const container = document.createElement('div')
-    container.id = 'yt-embed-container'
-    container.style.cssText = 'position:fixed;bottom:0;right:0;width:200px;height:113px;z-index:9999;opacity:0.01;'
+    container.id = 'yt-player-container'
+    container.style.cssText = `
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      width: 320px;
+      height: 180px;
+      z-index: 10000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      background: #000;
+    `
+    document.body.appendChild(container)
+    containerRef.current = container
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      container.remove()
+    }
+  }, [])
+
+  // Update iframe when video changes
+  useEffect(() => {
+    if (!videoId || !containerRef.current) return
+    if (videoId === prevVideoId.current) return
+
+    prevVideoId.current = videoId
     
+    // Clear existing content
+    containerRef.current.innerHTML = ''
+
+    // Create iframe
     const iframe = document.createElement('iframe')
-    iframe.id = 'yt-embed-iframe'
-    iframe.width = '200'
-    iframe.height = '113'
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
-    iframe.allow = 'autoplay; encrypted-media'
+    iframe.width = '320'
+    iframe.height = '180'
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`
+    iframe.allow = 'autoplay; encrypted-media; fullscreen'
     iframe.style.border = 'none'
     
-    container.appendChild(iframe)
-    document.body.appendChild(container)
+    containerRef.current.appendChild(iframe)
     iframeRef.current = iframe
 
-    // Simulate progress (since we can't get real progress from iframe without postMessage)
+    // Start progress timer (simulated since we can't get real progress from embed)
+    if (timerRef.current) clearInterval(timerRef.current)
     let elapsed = 0
     timerRef.current = setInterval(() => {
       elapsed += 1
       onProgress(elapsed)
-      if (elapsed === 1) onDuration(180) // Assume 3 min duration
     }, 1000)
+    
+    // Assume 3 minute duration
+    onDuration(180)
 
     console.log('Playing video:', videoId)
 
     return () => {
-      stopTimer()
+      if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [videoId, onProgress, onDuration])
 
-  // Handle play/pause by removing/recreating iframe
+  // Show/hide based on playing state
   useEffect(() => {
-    if (!videoId || !iframeRef.current) return
-    
-    const container = document.getElementById('yt-embed-container')
-    if (!container) return
-
-    if (isPlaying) {
-      container.style.opacity = '0.01'
-    } else {
-      // Pause by hiding iframe (crude but works)
-      container.style.opacity = '0'
-    }
-  }, [isPlaying, videoId])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopTimer()
-      const container = document.getElementById('yt-embed-container')
-      if (container) container.remove()
-    }
-  }, [])
+    if (!containerRef.current) return
+    containerRef.current.style.display = isPlaying ? 'block' : 'none'
+  }, [isPlaying])
 }
