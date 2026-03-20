@@ -11,41 +11,53 @@ interface TrackRowProps {
 
 export default function TrackRow({ track, index, isActive, onPlay }: TrackRowProps) {
   const canPlay = !!track.youtubeId
-  
+  const [hovered, setHovered] = React.useState(false)
+
   return (
     <div
       onClick={() => canPlay && onPlay(track)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '32px 1fr auto',
+        gridTemplateColumns: '40px 1fr auto',
         alignItems: 'center',
         gap: 12,
-        padding: '8px 10px',
-        borderRadius: 10,
-        cursor: canPlay ? 'pointer' : 'not-allowed',
-        background: isActive ? 'rgba(0,230,40,.08)' : 'transparent',
-        transition: 'background .15s',
-        opacity: canPlay ? 1 : 0.5,
+        padding: '8px 12px',
+        borderRadius: 8,
+        cursor: canPlay ? 'pointer' : 'default',
+        background: isActive ? 'rgba(255,255,255,.06)' : hovered ? 'rgba(255,255,255,.04)' : 'transparent',
+        transition: 'background .1s',
+        opacity: canPlay ? 1 : 0.45,
       }}
-      onMouseEnter={e => { if (!isActive && canPlay) e.currentTarget.style.background = 'rgba(255,255,255,.05)' }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-      className="track-row-item"
     >
-      <div style={{ textAlign: 'center', position: 'relative' }}>
-        <span style={{ fontSize: 12, color: isActive ? '#00e628' : '#474747' }}>{index + 1}</span>
+      {/* Index / play icon */}
+      <div style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 32 }}>
+        {hovered && canPlay ? (
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>
+            {isActive ? 'pause_circle' : 'play_circle'}
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: isActive ? 'var(--primary)' : 'rgba(255,255,255,.2)', fontWeight: isActive ? 700 : 400 }}>{index + 1}</span>
+        )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <img src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`} alt={track.title} style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} />
+
+      {/* Art + info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <img src={track.albumArt || `https://picsum.photos/seed/${index}/40/40`} alt={track.title}
+          style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 500, color: isActive ? '#00e628' : '#e2e2e2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</p>
-          <p style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--primary)' : '#e2e2e2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</p>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>
             {track.artist}
-            {!canPlay && <span style={{ color: '#f5a623', marginLeft: 6 }}> · Not playable</span>}
-            {track.plays && <span style={{ color: '#474747' }}> · {track.plays} plays</span>}
+            {!canPlay && <span style={{ color: 'var(--yellow)', marginLeft: 6 }}>· Not playable</span>}
+            {track.plays && <span style={{ color: 'rgba(255,255,255,.2)' }}> · {track.plays}</span>}
           </p>
         </div>
       </div>
-      <span style={{ fontSize: 11, color: '#474747' }}>{formatTime(track.duration)}</span>
+
+      {/* Duration */}
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', flexShrink: 0 }}>{formatTime(track.duration)}</span>
     </div>
   )
 }
