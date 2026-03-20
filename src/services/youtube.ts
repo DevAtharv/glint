@@ -1,52 +1,83 @@
 import type { Track } from '../types'
 
-const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string
-const BASE = 'https://www.googleapis.com/youtube/v3'
+// Piped API instances (free, no key needed)
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://piped-api.privacy.com.de',
+  'https://api.piped.projectsegfau.lt',
+]
 
-function parseDuration(iso: string): number {
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
-  if (!m) return 0
-  return (parseInt(m[1] ?? '0') * 3600) + (parseInt(m[2] ?? '0') * 60) + parseInt(m[3] ?? '0')
+let currentInstance = 0
+
+async function fetchPiped(path: string): Promise<any> {
+  for (let i = 0; i < PIPED_INSTANCES.length; i++) {
+    const instance = PIPED_INSTANCES[(currentInstance + i) % PIPED_INSTANCES.length]
+    try {
+      const res = await fetch(`${instance}${path}`, {
+        signal: AbortSignal.timeout(8000)
+      })
+      if (res.ok) {
+        currentInstance = (currentInstance + i) % PIPED_INSTANCES.length
+        return await res.json()
+      }
+    } catch (e) {
+      console.warn(`Piped instance ${instance} failed, trying next...`)
+    }
+  }
+  throw new Error('All Piped instances failed')
 }
 
-function fmtViews(n: string): string {
-  const num = parseInt(n)
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M'
-  if (num >= 1_000) return (num / 1_000).toFixed(1) + 'k'
-  return n
+function formatDuration(seconds: number): number {
+  return seconds || 0
+}
+
+function formatViews(views: number): string {
+  if (views >= 1_000_000) return (views / 1_000_000).toFixed(1) + 'M'
+  if (views >= 1_000) return (views / 1_000).toFixed(1) + 'k'
+  return views.toString()
 }
 
 export async function searchYouTube(query: string, maxResults = 10): Promise<Track[]> {
-  if (!API_KEY) return getMockResults(query)
   try {
-    const r = await fetch(
-      `${BASE}/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(query)}&maxResults=${maxResults}&key=${API_KEY}`
-    )
-    const d = await r.json()
-    if (!d.items?.length) return getMockResults(query)
+    const data = await fetchPiped(`/search?q=${encodeURIComponent(query)}&filter=videos`)
+    
+    if (!data.items?.length) return getMockResults(query)
 
-    const ids = d.items.map((i: any) => i.id.videoId).join(',')
-    const r2 = await fetch(`${BASE}/videos?part=contentDetails,statistics&id=${ids}&key=${API_KEY}`)
-    const d2 = await r2.json()
-    const details: Record<string, any> = {}
-    d2.items?.forEach((i: any) => { details[i.id] = i })
-
-    return d.items.map((item: any) => {
-      const vid = item.id.videoId
-      const det = details[vid]
-      return {
-        id: vid,
-        title: item.snippet.title,
-        artist: item.snippet.channelTitle,
-        albumArt: item.snippet.thumbnails.medium?.url ?? item.snippet.thumbnails.default?.url,
-        duration: det ? parseDuration(det.contentDetails.duration) : 0,
-        youtubeId: vid,
-        plays: det ? fmtViews(det.statistics.viewCount ?? '0') : undefined,
-      } satisfies Track
-    })
+    return data.items.slice(0, maxResults).map((item: any) => ({
+      id: item.url?.replace('/watch?v=', '') || item.id || `search-${Date.now()}`,
+      title: item.title || 'Unknown',
+      artist: item.uploaderName || item.uploader || 'Unknown',
+      albumArt: item.thumbnail || item.thumbnailUrl || `https://i.ytimg.com/vi/${item.url?.replace('/watch?v=', '')}/mqdefault.jpg`,
+      duration: formatDuration(item.duration),
+      youtubeId: item.url?.replace('/watch?v=', '') || item.id,
+      plays: item.views ? formatViews(item.views) : undefined,
+    }))
   } catch (e) {
-    console.warn('YouTube API error, using mock:', e)
+    console.warn('Piped API error, using mock:', e)
     return getMockResults(query)
+  }
+}
+
+export async function getStreamUrl(videoId: string): Promise<string | null> {
+  try {
+    const data = await fetchPiped(`/streams/${videoId}`)
+    
+    // Get audio stream URL
+    if (data.audioStreams?.length) {
+      // Sort by quality and get best audio
+      const sorted = data.audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))
+      return sorted[0]?.url || null
+    }
+    
+    // Fallback to video streams
+    if (data.videoStreams?.length) {
+      return data.videoStreams[0]?.url || null
+    }
+    
+    return null
+  } catch (e) {
+    console.warn('Failed to get stream URL:', e)
+    return null
   }
 }
 

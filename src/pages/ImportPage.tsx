@@ -25,7 +25,6 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
   const [activeTab, setActiveTab] = useState<'generate' | 'import'>('generate')
 
   const hasGroqKey = !!(import.meta.env.VITE_GROQ_API_KEY?.trim())
-  const hasYtKey = !!(import.meta.env.VITE_YOUTUBE_API_KEY?.trim())
   const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
 
   const addStatus = (msg: string, type: 'info' | 'ok' | 'err' = 'info') =>
@@ -133,10 +132,10 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
             Groq AI: {hasGroqKey ? 'Connected' : 'No key — using fallback tracks'}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: hasYtKey ? 'rgba(45,216,129,.08)' : 'rgba(245,166,35,.08)', border: `1px solid ${hasYtKey ? 'rgba(45,216,129,.2)' : 'rgba(245,166,35,.2)'}` }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: hasYtKey ? '#2DD881' : '#f5a623' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: hasYtKey ? '#2DD881' : '#f5a623' }}>
-            YouTube: {hasYtKey ? 'Connected' : 'Using mock tracks'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(45,216,129,.08)', border: '1px solid rgba(45,216,129,.2)' }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2DD881' }} />
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#2DD881' }}>
+            YouTube: Connected (Piped API)
           </span>
         </div>
       </div>

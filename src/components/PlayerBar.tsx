@@ -43,7 +43,7 @@ export default function PlayerBar({
       {!canPlay && (
         <div style={{ background: 'rgba(245,166,35,.1)', borderBottom: '1px solid rgba(245,166,35,.2)', padding: '6px 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#f5a623"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-          <p style={{ fontSize: 11, color: '#f5a623' }}>YouTube API quota exceeded — this track can't play. Get a new API key or wait for quota reset.</p>
+          <p style={{ fontSize: 11, color: '#f5a623' }}>This track could not be matched on YouTube</p>
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 220px', alignItems: 'center', padding: '0 24px', gap: 16, height: canPlay ? 88 : 72 }}>

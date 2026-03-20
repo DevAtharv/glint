@@ -31,67 +31,59 @@ async function getSpotifyToken() {
   console.log('Spotify token refreshed')
 }
 
-// ── YOUTUBE SEARCH ───────────────────────────────────────────────────────────
-const YT_API_KEY = process.env.YOUTUBE_API_KEY
-const YT_BASE = 'https://www.googleapis.com/youtube/v3'
+// ── YOUTUBE SEARCH VIA PIPED API (FREE, NO KEY NEEDED) ─────────────────────────
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://api.piped.projectsegfau.lt',
+  'https://pipedapi.r4fo.com',
+]
+
+let currentPipedInstance = 0
+
+async function fetchPiped(path) {
+  for (let i = 0; i < PIPED_INSTANCES.length; i++) {
+    const instance = PIPED_INSTANCES[(currentPipedInstance + i) % PIPED_INSTANCES.length]
+    try {
+      const res = await axios.get(`${instance}${path}`, { timeout: 8000 })
+      if (res.data) {
+        currentPipedInstance = (currentPipedInstance + i) % PIPED_INSTANCES.length
+        return res.data
+      }
+    } catch (e) {
+      console.warn(`Piped instance ${instance} failed, trying next...`)
+    }
+  }
+  throw new Error('All Piped instances failed')
+}
 
 async function searchYouTube(query) {
-  if (!YT_API_KEY) return null
   try {
-    const res = await axios.get(`${YT_BASE}/search`, {
-      params: {
-        part: 'snippet',
-        type: 'video',
-        videoCategoryId: '10',
-        q: query,
-        maxResults: 1,
-        key: YT_API_KEY,
-      },
-    })
-    const item = res.data.items?.[0]
-    if (!item) return null
-
-    const videoId = item.id.videoId
-
-    // Get duration
-    const detailRes = await axios.get(`${YT_BASE}/videos`, {
-      params: { part: 'contentDetails', id: videoId, key: YT_API_KEY },
-    })
-    const iso = detailRes.data.items?.[0]?.contentDetails?.duration ?? 'PT0S'
-    const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
-    const duration = (parseInt(match?.[1] ?? 0) * 3600)
-      + (parseInt(match?.[2] ?? 0) * 60)
-      + parseInt(match?.[3] ?? 0)
-
+    const data = await fetchPiped(`/search?q=${encodeURIComponent(query)}&filter=videos`)
+    
+    if (!data.items?.length) return null
+    
+    const item = data.items[0]
+    const videoId = item.url?.replace('/watch?v=', '') || item.videoId
+    
     return {
       youtubeId: videoId,
-      title: item.snippet.title,
-      artist: item.snippet.channelTitle,
-      albumArt: item.snippet.thumbnails.medium?.url,
-      duration,
+      title: item.title || 'Unknown',
+      artist: item.uploaderName || 'Unknown',
+      albumArt: item.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+      duration: item.duration || 0,
     }
   } catch (err) {
-    console.error('YouTube search error:', err.message)
+    console.error('Piped search error:', err.message)
     return null
   }
 }
 
-// If no YT API key, return track with no youtubeId (frontend uses hardcoded IDs)
 async function matchTrackOnYouTube(title, artist) {
-  if (!YT_API_KEY) {
-    return {
-      id: `${title}-${artist}`.replace(/\s/g, '-').toLowerCase(),
-      title,
-      artist,
-      albumArt: `https://picsum.photos/seed/${encodeURIComponent(title)}/120/120`,
-      duration: 0,
-      youtubeId: null,
-    }
-  }
   const result = await searchYouTube(`${title} ${artist} official audio`)
-  return result
-    ? { id: result.youtubeId, ...result }
-    : { id: `${title}-${Date.now()}`, title, artist, albumArt: '', duration: 0, youtubeId: null }
+  if (result) {
+    return { id: result.youtubeId, ...result }
+  }
+  return { id: `${title}-${Date.now()}`, title, artist, albumArt: '', duration: 0, youtubeId: null }
 }
 
 // ── GROQ AI ──────────────────────────────────────────────────────────────────

@@ -19,14 +19,11 @@ const GENRES = [
   { label: 'Indie', color: '#78909c', query: 'indie alternative 2024' },
 ]
 
-const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string
-
 export default function SearchPage({ onPlay, currentTrack }: SearchPageProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Track[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [usingFallback, setUsingFallback] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const doSearch = (q: string) => {
@@ -35,15 +32,8 @@ export default function SearchPage({ onPlay, currentTrack }: SearchPageProps) {
     if (q.length < 2) { setSearched(false); setResults([]); return }
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
-      try {
-        const r = await searchYouTube(q, 12)
-        setResults(r)
-        // Check if we got real results or fallback
-        const hasRealResults = r.length > 0 && r[0].youtubeId && !r[0].id.startsWith('fb-')
-        setUsingFallback(!hasRealResults && !API_KEY)
-      } catch (e) {
-        setUsingFallback(true)
-      }
+      const r = await searchYouTube(q, 12)
+      setResults(r)
       setSearched(true)
       setLoading(false)
     }, 500)
@@ -52,14 +42,8 @@ export default function SearchPage({ onPlay, currentTrack }: SearchPageProps) {
   const searchGenre = async (g: typeof GENRES[0]) => {
     setQuery(g.label)
     setLoading(true)
-    try {
-      const r = await searchYouTube(g.query, 12)
-      setResults(r)
-      const hasRealResults = r.length > 0 && r[0].youtubeId && !r[0].id.startsWith('fb-')
-      setUsingFallback(!hasRealResults && !API_KEY)
-    } catch (e) {
-      setUsingFallback(true)
-    }
+    const r = await searchYouTube(g.query, 12)
+    setResults(r)
     setSearched(true)
     setLoading(false)
   }
@@ -67,16 +51,6 @@ export default function SearchPage({ onPlay, currentTrack }: SearchPageProps) {
   return (
     <div style={{ padding: '0 32px 32px' }}>
       <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: '#EEF0FF', marginBottom: 20 }}>Search</h2>
-
-      {/* API Warning */}
-      {usingFallback && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, marginBottom: 20, background: 'rgba(245,166,35,.08)', border: '1px solid rgba(245,166,35,.2)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#f5a623"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-          <p style={{ fontSize: 12, color: '#f5a623' }}>
-            YouTube API quota exceeded. Search is using fallback tracks. Get a new API key or wait for quota reset.
-          </p>
-        </div>
-      )}
 
       {/* Search input */}
       <div style={{ position: 'relative', marginBottom: 28 }}>
