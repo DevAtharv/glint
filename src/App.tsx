@@ -18,7 +18,7 @@ import { savePlaylists, loadPlaylists, saveLiked, loadLiked } from './services/s
 const GUEST_USER = { id: 'guest', email: 'guest@glint.app', name: 'Guest', memberType: 'Free' as const }
 
 function GlintApp() {
-  const { user, loading, isDemo, session } = useAuth()
+  const { user, loading, isDemo } = useAuth()
   const [page, setPage] = useState<Page>('home')
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [liked, setLiked] = useState<Track[]>([])
@@ -62,7 +62,7 @@ function GlintApp() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ background: 'var(--bg)' }}>
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-2xl text-black" style={{ fontVariationSettings: "'FILL' 1" }}>music_note</span>
@@ -91,10 +91,10 @@ function GlintApp() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '256px 1fr', gridTemplateRows: '1fr 80px', height: '100vh', overflow: 'hidden' }}>
+    <div className="grid h-screen overflow-hidden" style={{ gridTemplateColumns: '256px 1fr', gridTemplateRows: '1fr 80px' }}>
       <Sidebar currentPage={page} onNavigate={setPage} playlists={playlists} onPlayPlaylist={pl => pl.tracks[0] && player.playTrack(pl.tracks[0], pl.tracks)} currentTrack={player.currentTrack} />
-      <main style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-        <div style={{ flex: 1, overflowY: 'auto' }} key={page}>{pageContent()}</div>
+      <main className="overflow-hidden flex flex-col bg-background">
+        <div className="flex-1 overflow-y-auto" key={page}>{pageContent()}</div>
       </main>
       <PlayerBar track={player.currentTrack} isPlaying={player.isPlaying} progress={player.progress} currentSecs={player.currentSecs} shuffle={player.shuffle} repeat={player.repeat} liked={isLiked} volume={player.volume} onTogglePlay={player.togglePlay} onNext={player.next} onPrev={player.prev} onSeek={player.seek} onShuffle={() => player.setShuffle(s => !s)} onRepeat={() => player.setRepeat(r => !r)} onLike={handleLike} onVolumeChange={player.setVolume} />
     </div>
