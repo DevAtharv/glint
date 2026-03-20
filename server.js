@@ -480,7 +480,7 @@ app.post('/api/import', async (req, res) => {
     const matchedTracks = []
     let matchCount = 0
     
-    for (let i = 0; i < Math.min(rawTracks.length, 50); i++) {
+    for (let i = 0; i < Math.min(rawTracks.length, 100); i++) {
       const track = rawTracks[i]
       console.log(`[${i+1}/${rawTracks.length}] Searching: "${track.title}" by ${track.artist}`)
       
