@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 
 interface Props {
   videoId: string | null
@@ -24,6 +24,7 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
   const prevVideoId = useRef<string | null>(null)
   const prevSeek = useRef<number | null>(null)
   const pendingPlay = useRef(false)
+  const [apiReady, setApiReady] = useState(false)
 
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null } }
 
@@ -40,13 +41,13 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
   }, [onProgress, onDuration])
 
   const buildPlayer = useCallback((vid: string) => {
-    console.log('Building YouTube player for video:', vid)
+    console.log('Building player for:', vid)
     
-    // Remove old iframe if any
-    const old = document.getElementById('yt-player-div')
-    if (old) old.remove()
+    // Remove old elements
+    const oldWrap = document.getElementById('yt-player-wrap')
+    if (oldWrap) oldWrap.remove()
 
-    // Fresh container
+    // Create container
     const wrap = document.createElement('div')
     wrap.id = 'yt-player-wrap'
     wrap.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;'
@@ -76,7 +77,7 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
         },
         events: {
           onReady(e: any) {
-            console.log('YouTube player ready')
+            console.log('Player ready')
             ready.current = true
             e.target.setVolume(volume)
             if (pendingPlay.current || isPlaying) {
@@ -85,83 +86,79 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
             }
           },
           onStateChange(e: any) {
-            console.log('YouTube player state:', e.data)
             // 0=ended 1=playing 2=paused 3=buffering 5=cued
             if (e.data === 1) startTimer()
             if (e.data === 2 || e.data === 5) stopTimer()
             if (e.data === 0) { stopTimer(); onEnded() }
           },
           onError(e: any) {
-            console.error('YouTube player error:', e.data)
+            console.error('Player error:', e.data)
             stopTimer()
             onEnded()
           },
         },
       })
-    } catch (error) {
-      console.error('Failed to create YouTube player:', error)
+    } catch (err) {
+      console.error('Failed to create player:', err)
     }
   }, [volume, isPlaying, startTimer, onEnded])
 
-  // Load YT script once
+  // Load YouTube IFrame API
   useEffect(() => {
-    if (document.getElementById('yt-api-script')) return
-    if (window.YT?.Player) return
+    if (window.YT?.Player) {
+      setApiReady(true)
+      return
+    }
+
+    if (document.getElementById('yt-api-script')) {
+      // Script already loading, wait for it
+      const checkReady = setInterval(() => {
+        if (window.YT?.Player) {
+          clearInterval(checkReady)
+          setApiReady(true)
+        }
+      }, 100)
+      return () => clearInterval(checkReady)
+    }
+
+    const script = document.createElement('script')
+    script.id = 'yt-api-script'
+    script.src = 'https://www.youtube.com/iframe_api'
     
-    console.log('Loading YouTube IFrame API')
-    const s = document.createElement('script')
-    s.id = 'yt-api-script'
-    s.src = 'https://www.youtube.com/iframe_api'
-    s.async = true
-    
-    // Set up the callback
     window.onYouTubeIframeAPIReady = () => {
-      console.log('YouTube IFrame API ready')
+      console.log('YouTube API ready')
+      setApiReady(true)
     }
     
-    document.head.appendChild(s)
+    document.head.appendChild(script)
   }, [])
 
-  // New track → rebuild player
+  // Build player when video changes
   useEffect(() => {
-    if (!videoId) return
+    if (!videoId || !apiReady) return
     if (videoId === prevVideoId.current) return
+    
+    console.log('Video changed to:', videoId)
     prevVideoId.current = videoId
     pendingPlay.current = true
     stopTimer()
-
-    console.log('New track:', videoId)
-
-    const tryBuild = () => {
-      if (window.YT?.Player) {
-        buildPlayer(videoId)
-      } else {
-        console.log('YouTube API not ready yet, waiting...')
-        setTimeout(tryBuild, 500)
-      }
-    }
-
-    tryBuild()
+    buildPlayer(videoId)
 
     return stopTimer
-  }, [videoId, buildPlayer])
+  }, [videoId, apiReady, buildPlayer])
 
-  // Play / pause toggle
+  // Play/pause
   useEffect(() => {
     if (!ready.current || !player.current) return
     try {
-      if (isPlaying) { 
-        console.log('Playing video')
+      if (isPlaying) {
         player.current.playVideo()
         startTimer()
-      } else { 
-        console.log('Pausing video')
+      } else {
         player.current.pauseVideo()
         stopTimer()
       }
-    } catch (e) {
-      console.error('Play/pause error:', e)
-    }
+    } catch { /**/ }
   }, [isPlaying, startTimer])
 
   // Volume
