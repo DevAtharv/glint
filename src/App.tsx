@@ -10,6 +10,7 @@ import SearchPage from './pages/SearchPage'
 import LibraryPage from './pages/LibraryPage'
 import ImportPage from './pages/ImportPage'
 import ProfilePage from './pages/ProfilePage'
+import EditPlaylistPage from './pages/EditPlaylistPage'
 import type { Page, Track, Playlist } from './types'
 import { savePlaylists, loadPlaylists, saveLiked, loadLiked } from './services/supabase'
 
@@ -54,6 +55,7 @@ function GlintApp() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [liked, setLiked] = useState<Track[]>([])
   const [guestMode, setGuestMode] = useState(false)
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
 
   const player = usePlayer()
   const activeUser = user ?? (guestMode ? GUEST_USER : null)
@@ -99,6 +101,15 @@ function GlintApp() {
     if (pl.tracks.length > 0) player.playTrack(pl.tracks[0], pl.tracks)
   }, [player])
 
+  const handleEditPlaylist = useCallback((pl: Playlist) => {
+    setEditingPlaylist(pl)
+  }, [])
+
+  const handleUpdatePlaylist = useCallback((pl: Playlist) => {
+    setPlaylists(prev => prev.map(p => p.id === pl.id ? pl : p))
+    setEditingPlaylist(null)
+  }, [])
+
   const isLiked = player.currentTrack ? liked.some(t => t.id === player.currentTrack!.id) : false
 
   if (loading) {
@@ -121,10 +132,31 @@ function GlintApp() {
   }
 
   const pageContent = () => {
+    if (editingPlaylist) {
+      return (
+        <EditPlaylistPage
+          playlist={editingPlaylist}
+          onSave={handleUpdatePlaylist}
+          onBack={() => setEditingPlaylist(null)}
+          onPlay={player.playTrack}
+          currentTrack={player.currentTrack}
+        />
+      )
+    }
+    
     switch (page) {
       case 'home':    return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={p => setPage(p)} />
       case 'search':  return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      case 'library': return <LibraryPage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} onLike={handleLike} />
+      case 'library': return (
+        <LibraryPage
+          liked={liked}
+          playlists={playlists}
+          onPlay={player.playTrack}
+          currentTrack={player.currentTrack}
+          onLike={handleLike}
+          onEditPlaylist={handleEditPlaylist}
+        />
+      )
       case 'import':  return <ImportPage onSavePlaylist={handleSavePlaylist} onPlay={player.playTrack} currentTrack={player.currentTrack} />
       case 'profile': return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
       default:        return null

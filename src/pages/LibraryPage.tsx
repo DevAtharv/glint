@@ -8,9 +8,10 @@ interface LibraryPageProps {
   onPlay: (track: Track, queue?: Track[]) => void
   currentTrack: Track | null
   onLike: (track: Track) => void
+  onEditPlaylist?: (playlist: Playlist) => void
 }
 
-export default function LibraryPage({ liked, playlists, onPlay, currentTrack }: LibraryPageProps) {
+export default function LibraryPage({ liked, playlists, onPlay, currentTrack, onLike, onEditPlaylist }: LibraryPageProps) {
   const [tab, setTab] = useState<'liked' | 'playlists' | 'albums'>('liked')
 
   const tabStyle = (active: boolean) => ({
@@ -52,7 +53,6 @@ export default function LibraryPage({ liked, playlists, onPlay, currentTrack }: 
                 {playlists.map(pl => (
                   <div
                     key={pl.id}
-                    onClick={() => pl.tracks[0] && onPlay(pl.tracks[0], pl.tracks)}
                     style={{
                       background: '#141720', border: '1px solid rgba(255,255,255,.06)',
                       borderRadius: 14, padding: 14, cursor: 'pointer',
@@ -61,9 +61,58 @@ export default function LibraryPage({ liked, playlists, onPlay, currentTrack }: 
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.14)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.06)'; e.currentTarget.style.transform = 'none' }}
                   >
-                    <img src={pl.cover} alt={pl.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 9, display: 'block', marginBottom: 10 }} />
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{pl.name}</p>
-                    <p style={{ fontSize: 11, color: '#8B8FA8' }}>{pl.tracks.length} tracks</p>
+                    <div
+                      onClick={() => pl.tracks[0] && onPlay(pl.tracks[0], pl.tracks)}
+                      style={{ position: 'relative' }}
+                    >
+                      <img src={pl.cover} alt={pl.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 9, display: 'block', marginBottom: 10 }} />
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 18,
+                        right: 8,
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        background: '#6C63FF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 0,
+                        transition: 'opacity .2s',
+                        boxShadow: '0 4px 12px rgba(0,0,0,.4)',
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{pl.name}</p>
+                        <p style={{ fontSize: 11, color: '#8B8FA8' }}>{pl.tracks.length} tracks</p>
+                      </div>
+                      {onEditPlaylist && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onEditPlaylist(pl) }}
+                          style={{
+                            background: 'rgba(108,99,255,.1)',
+                            border: '1px solid rgba(108,99,255,.2)',
+                            borderRadius: 6,
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            marginLeft: 8,
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="#6C63FF">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                          </svg>
+                          <span style={{ fontSize: 10, color: '#6C63FF', fontWeight: 600 }}>Edit</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
