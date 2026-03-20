@@ -193,40 +193,65 @@ app.post('/api/import', async (req, res) => {
       const playlistId = spotifyPlaylistId(url)
       if (!playlistId) return res.status(400).json({ error: 'Invalid Spotify playlist URL' })
 
-      if (!process.env.SPOTIFY_CLIENT_ID) {
-        return res.status(400).json({ error: 'Spotify API keys not configured on server. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to backend .env' })
+      let spotifyWorks = false
+      try {
+        if (!process.env.SPOTIFY_CLIENT_ID) {
+          throw new Error('Spotify credentials not configured')
+        }
+        await getSpotifyToken()
+        spotifyWorks = true
+      } catch (e) {
+        console.warn('Spotify auth failed, falling back to AI:', e.message)
       }
 
-      await getSpotifyToken()
+      if (spotifyWorks) {
+        try {
+          // Fetch playlist info
+          const plData = await spotify.getPlaylist(playlistId, {
+            fields: 'name,images,owner,tracks.total',
+          })
+          playlistName = plData.body.name
+          playlistCover = plData.body.images?.[0]?.url ?? null
 
-      // Fetch playlist info
-      const plData = await spotify.getPlaylist(playlistId, {
-        fields: 'name,images,owner,tracks.total',
-      })
-      playlistName = plData.body.name
-      playlistCover = plData.body.images?.[0]?.url ?? null
+          // Fetch all tracks (paginate if > 100)
+          const total = plData.body.tracks.total
+          const pages = Math.ceil(Math.min(total, 100) / 50) // max 100 tracks
 
-      // Fetch all tracks (paginate if > 100)
-      const total = plData.body.tracks.total
-      const pages = Math.ceil(Math.min(total, 100) / 50) // max 100 tracks
-
-      for (let page = 0; page < pages; page++) {
-        const tracksData = await spotify.getPlaylistTracks(playlistId, {
-          limit: 50,
-          offset: page * 50,
-          fields: 'items(track(name,artists,duration_ms))',
-        })
-        tracksData.body.items.forEach(item => {
-          if (item.track?.name) {
-            rawTracks.push({
-              title: item.track.name,
-              artist: item.track.artists?.map(a => a.name).join(', ') ?? '',
+          for (let page = 0; page < pages; page++) {
+            const tracksData = await spotify.getPlaylistTracks(playlistId, {
+              limit: 50,
+              offset: page * 50,
+              fields: 'items(track(name,artists,duration_ms))',
+            })
+            tracksData.body.items.forEach(item => {
+              if (item.track?.name) {
+                rawTracks.push({
+                  title: item.track.name,
+                  artist: item.track.artists?.map(a => a.name).join(', ') ?? '',
+                })
+              }
             })
           }
-        })
+
+          console.log(`Spotify: "${playlistName}" — ${rawTracks.length} tracks`)
+        } catch (e) {
+          console.warn('Spotify API call failed, falling back to AI:', e.message)
+          spotifyWorks = false
+        }
       }
 
-      console.log(`Spotify: "${playlistName}" — ${rawTracks.length} tracks`)
+      if (!spotifyWorks) {
+        // Fall back to AI for Spotify playlists
+        playlistName = 'Spotify Playlist (AI suggestions)'
+        if (GROQ_KEY) {
+          const urlHint = new URL(url).pathname.split('/').filter(Boolean).join(' ').replace(/-/g, ' ')
+          rawTracks = await groqGenerateTracks(`Spotify playlist: ${urlHint}`)
+          console.log(`AI generated ${rawTracks.length} tracks for Spotify fallback`)
+        } else {
+          rawTracks = getFallback('popular music')
+          console.log(`Using ${rawTracks.length} fallback tracks`)
+        }
+      }
     }
 
     // ── SOUNDCLOUD ────────────────────────────────────────────────────────────
