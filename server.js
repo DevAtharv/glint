@@ -624,12 +624,8 @@ app.get('/api/search', async (req, res) => {
   if (!q) return res.status(400).json({ error: 'Query required' })
 
   try {
-    const results = []
-    for (let i = 0; i < Math.min(limit, 10); i++) {
-      const track = await searchYouTube(q)
-      if (track) results.push(track)
-      break // searchYouTube already returns 1 result, this is just for clarity
-    }
+    const result = await searchYouTubeAPI(q)
+    const results = result ? [result] : []
     res.json(results)
   } catch (err) {
     res.status(500).json({ error: err.message })
