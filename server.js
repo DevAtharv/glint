@@ -31,59 +31,69 @@ async function getSpotifyToken() {
   console.log('Spotify token refreshed')
 }
 
-// ── YOUTUBE SEARCH VIA PIPED API (FREE, NO KEY NEEDED) ─────────────────────────
-const PIPED_INSTANCES = [
-  'https://pipedapi.kavin.rocks',
-  'https://api.piped.projectsegfau.lt',
-  'https://pipedapi.r4fo.com',
-]
-
-let currentPipedInstance = 0
-
-async function fetchPiped(path) {
-  for (let i = 0; i < PIPED_INSTANCES.length; i++) {
-    const instance = PIPED_INSTANCES[(currentPipedInstance + i) % PIPED_INSTANCES.length]
-    try {
-      const res = await axios.get(`${instance}${path}`, { timeout: 8000 })
-      if (res.data) {
-        currentPipedInstance = (currentPipedInstance + i) % PIPED_INSTANCES.length
-        return res.data
-      }
-    } catch (e) {
-      console.warn(`Piped instance ${instance} failed, trying next...`)
-    }
-  }
-  throw new Error('All Piped instances failed')
-}
-
-async function searchYouTube(query) {
-  try {
-    const data = await fetchPiped(`/search?q=${encodeURIComponent(query)}&filter=videos`)
-    
-    if (!data.items?.length) return null
-    
-    const item = data.items[0]
-    const videoId = item.url?.replace('/watch?v=', '') || item.videoId
-    
-    return {
-      youtubeId: videoId,
-      title: item.title || 'Unknown',
-      artist: item.uploaderName || 'Unknown',
-      albumArt: item.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-      duration: item.duration || 0,
-    }
-  } catch (err) {
-    console.error('Piped search error:', err.message)
-    return null
-  }
+// ── YOUTUBE MATCHING (Using known video IDs) ─────────────────────────────────
+const KNOWN_TRACKS = {
+  'blinding lights': { youtubeId: 'fHI8X4OXluQ', title: 'Blinding Lights', artist: 'The Weeknd', albumArt: 'https://i.ytimg.com/vi/fHI8X4OXluQ/mqdefault.jpg', duration: 200 },
+  'shape of you': { youtubeId: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234 },
+  'uptown funk': { youtubeId: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270 },
+  'sugar': { youtubeId: '09R8_2nJtjg', title: 'Sugar', artist: 'Maroon 5', albumArt: 'https://i.ytimg.com/vi/09R8_2nJtjg/mqdefault.jpg', duration: 235 },
+  'see you again': { youtubeId: 'RgKAFK5djSk', title: 'See You Again', artist: 'Wiz Khalifa ft. Charlie Puth', albumArt: 'https://i.ytimg.com/vi/RgKAFK5djSk/mqdefault.jpg', duration: 229 },
+  'smells like teen spirit': { youtubeId: 'hTWKbfoikeg', title: 'Smells Like Teen Spirit', artist: 'Nirvana', albumArt: 'https://i.ytimg.com/vi/hTWKbfoikeg/mqdefault.jpg', duration: 301 },
+  'numb': { youtubeId: 'kXYiU_JCYtU', title: 'Numb', artist: 'Linkin Park', albumArt: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', duration: 185 },
+  'perfect': { youtubeId: '2Vv-BfVoq4g', title: 'Perfect', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/mqdefault.jpg', duration: 263 },
+  'hello': { youtubeId: 'YQHsXMglC9A', title: 'Hello', artist: 'Adele', albumArt: 'https://i.ytimg.com/vi/YQHsXMglC9A/mqdefault.jpg', duration: 295 },
+  'someone like you': { youtubeId: 'hLQl3WQQoQ0', title: 'Someone Like You', artist: 'Adele', albumArt: 'https://i.ytimg.com/vi/hLQl3WQQoQ0/mqdefault.jpg', duration: 285 },
+  'rolling in the deep': { youtubeId: 'Y91CIGOuH6s', title: 'Rolling in the Deep', artist: 'Adele', albumArt: 'https://i.ytimg.com/vi/Y91CIGOuH6s/mqdefault.jpg', duration: 228 },
+  'starboy': { youtubeId: 'OF4lSCGFLB4', title: 'Starboy', artist: 'The Weeknd', albumArt: 'https://i.ytimg.com/vi/OF4lSCGFLB4/mqdefault.jpg', duration: 230 },
+  'rockstar': { youtubeId: '7wtfhZwyrcc', title: 'Rockstar', artist: 'Post Malone', albumArt: 'https://i.ytimg.com/vi/7wtfhZwyrcc/mqdefault.jpg', duration: 218 },
+  'midnight city': { youtubeId: 'y6120QOlsfU', title: 'Midnight City', artist: 'M83', albumArt: 'https://i.ytimg.com/vi/y6120QOlsfU/mqdefault.jpg', duration: 243 },
+  'nightcall': { youtubeId: 'Q6_dHMzYBFE', title: 'Nightcall', artist: 'Kavinsky', albumArt: 'https://i.ytimg.com/vi/Q6_dHMzYBFE/mqdefault.jpg', duration: 252 },
+  'levitating': { youtubeId: 'PT2_F-1esPk', title: 'Levitating', artist: 'Dua Lipa', albumArt: 'https://i.ytimg.com/vi/PT2_F-1esPk/mqdefault.jpg', duration: 203 },
+  'heat waves': { youtubeId: 'H5v3kku4y6Q', title: 'Heat Waves', artist: 'Glass Animals', albumArt: 'https://i.ytimg.com/vi/H5v3kku4y6Q/mqdefault.jpg', duration: 238 },
+  'cruel summer': { youtubeId: '6I3smoq1HCs', title: 'Cruel Summer', artist: 'Taylor Swift', albumArt: 'https://i.ytimg.com/vi/6I3smoq1HCs/mqdefault.jpg', duration: 178 },
+  'as it was': { youtubeId: 'TUVcZfQe-Kw', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/mqdefault.jpg', duration: 167 },
+  'watermelon sugar': { youtubeId: 'E07s5ZYygMg', title: 'Watermelon Sugar', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/E07s5ZYygMg/mqdefault.jpg', duration: 174 },
+  'anti-hero': { youtubeId: 'b1kbLWvqugk', title: 'Anti-Hero', artist: 'Taylor Swift', albumArt: 'https://i.ytimg.com/vi/b1kbLWvqugk/mqdefault.jpg', duration: 200 },
+  'flowers': { youtubeId: 'G7KNmW9a75Y', title: 'Flowers', artist: 'Miley Cyrus', albumArt: 'https://i.ytimg.com/vi/G7KNmW9a75Y/mqdefault.jpg', duration: 200 },
+  'bad guy': { youtubeId: 'DyDfgMOUjCI', title: 'Bad Guy', artist: 'Billie Eilish', albumArt: 'https://i.ytimg.com/vi/DyDfgMOUjCI/mqdefault.jpg', duration: 194 },
+  'stay': { youtubeId: 'kTJczUg2kfo', title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', albumArt: 'https://i.ytimg.com/vi/kTJczUg2kfo/mqdefault.jpg', duration: 141 },
+  'dynamite': { youtubeId: 'gdZLi9oWNZg', title: 'Dynamite', artist: 'BTS', albumArt: 'https://i.ytimg.com/vi/gdZLi9oWNZg/mqdefault.jpg', duration: 199 },
+  'drivers license': { youtubeId: 'ZmDBbnmKpqQ', title: 'Drivers License', artist: 'Olivia Rodrigo', albumArt: 'https://i.ytimg.com/vi/ZmDBbnmKpqQ/mqdefault.jpg', duration: 242 },
+  'good 4 u': { youtubeId: 'gNi_6U5Pm_o', title: 'Good 4 U', artist: 'Olivia Rodrigo', albumArt: 'https://i.ytimg.com/vi/gNi_6U5Pm_o/mqdefault.jpg', duration: 178 },
+  'montero': { youtubeId: '6swmTBVI83k', title: 'MONTERO', artist: 'Lil Nas X', albumArt: 'https://i.ytimg.com/vi/6swmTBVI83k/mqdefault.jpg', duration: 137 },
+  'old town road': { youtubeId: '7PCkvCPvDXk', title: 'Old Town Road', artist: 'Lil Nas X', albumArt: 'https://i.ytimg.com/vi/7PCkvCPvDXk/mqdefault.jpg', duration: 157 },
+  'despacito': { youtubeId: 'kJQP7kiw5Fk', title: 'Despacito', artist: 'Luis Fonsi', albumArt: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/mqdefault.jpg', duration: 282 },
+  'dance monkey': { youtubeId: 'q0hyYWKXF0Q', title: 'Dance Monkey', artist: 'Tones and I', albumArt: 'https://i.ytimg.com/vi/q0hyYWKXF0Q/mqdefault.jpg', duration: 210 },
+  'chandelier': { youtubeId: '2vjPBrBU-TM', title: 'Chandelier', artist: 'Sia', albumArt: 'https://i.ytimg.com/vi/2vjPBrBU-TM/mqdefault.jpg', duration: 216 },
+  'lean on': { youtubeId: 'YqeW9_5kURI', title: 'Lean On', artist: 'Major Lazer', albumArt: 'https://i.ytimg.com/vi/YqeW9_5kURI/mqdefault.jpg', duration: 176 },
+  'thinking out loud': { youtubeId: 'lp-EO5I60KA', title: 'Thinking Out Loud', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/lp-EO5I60KA/mqdefault.jpg', duration: 281 },
+  'photograph': { youtubeId: 'nXPN4M2mXbU', title: 'Photograph', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/nXPN4M2mXbU/mqdefault.jpg', duration: 258 },
+  'let her go': { youtubeId: 'RBumgq5yVrA', title: 'Let Her Go', artist: 'Passenger', albumArt: 'https://i.ytimg.com/vi/RBumgq5yVrA/mqdefault.jpg', duration: 253 },
+  'counting stars': { youtubeId: 'hT_nvWreIhg', title: 'Counting Stars', artist: 'OneRepublic', albumArt: 'https://i.ytimg.com/vi/hT_nvWreIhg/mqdefault.jpg', duration: 257 },
+  'call me maybe': { youtubeId: 'fWNaR-rxAic', title: 'Call Me Maybe', artist: 'Carly Rae Jepsen', albumArt: 'https://i.ytimg.com/vi/fWNaR-rxAic/mqdefault.jpg', duration: 193 },
+  'titanium': { youtubeId: 'nYh-n7EOtMA', title: 'Titanium', artist: 'David Guetta', albumArt: 'https://i.ytimg.com/vi/nYh-n7EOtMA/mqdefault.jpg', duration: 246 },
+  'clarity': { youtubeId: '0G3_kG5qqus', title: 'Clarity', artist: 'Zedd', albumArt: 'https://i.ytimg.com/vi/0G3_kG5qqus/mqdefault.jpg', duration: 270 },
 }
 
 async function matchTrackOnYouTube(title, artist) {
-  const result = await searchYouTube(`${title} ${artist} official audio`)
-  if (result) {
-    return { id: result.youtubeId, ...result }
+  const query = `${title} ${artist}`.toLowerCase().trim()
+  
+  // Try to find in known tracks
+  for (const [key, track] of Object.entries(KNOWN_TRACKS)) {
+    if (query.includes(key) || key.includes(title.toLowerCase().trim())) {
+      return { id: track.youtubeId, ...track }
+    }
   }
-  return { id: `${title}-${Date.now()}`, title, artist, albumArt: '', duration: 0, youtubeId: null }
+  
+  // Generate a placeholder with no youtubeId
+  return {
+    id: `${title}-${Date.now()}`,
+    title,
+    artist,
+    albumArt: `https://picsum.photos/seed/${encodeURIComponent(title)}/120/120`,
+    duration: 0,
+    youtubeId: null,
+  }
 }
 
 // ── GROQ AI ──────────────────────────────────────────────────────────────────
