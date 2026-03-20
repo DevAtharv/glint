@@ -18,78 +18,109 @@ const NAV = [
 
 export default function Sidebar({ currentPage, onNavigate, playlists, onPlayPlaylist, currentTrack }: SidebarProps) {
   return (
-    <div className="flex flex-col h-full bg-black border-r border-white/5">
+    <aside style={{
+      gridRow: '1/3',
+      width: 256,
+      background: '#000',
+      borderRight: '1px solid rgba(255,255,255,.08)',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: 16,
+      paddingTop: 0,
+      overflow: 'hidden',
+      flexShrink: 0,
+    }}>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5">
-        <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined text-lg text-black" style={{ fontVariationSettings: "'FILL' 1" }}>music_note</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 16px 20px' }}>
+        <div style={{ width: 32, height: 32, background: 'var(--primary)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#000', fontVariationSettings: "'FILL' 1" }}>music_note</span>
         </div>
-        <h1 className="text-xl font-black text-green-400 tracking-tight">Glint</h1>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 900, color: '#4ade80', letterSpacing: '-0.03em', lineHeight: 1 }}>Glint</h1>
+          <p style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 2 }}>Music App</p>
+        </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-1 px-3">
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
         {NAV.map(item => {
           const active = currentPage === item.id
           return (
-            <button key={item.id} onClick={() => onNavigate(item.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${active ? 'bg-white/10 text-green-400' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
+            <a key={item.id}
+              onClick={(e) => { e.preventDefault(); onNavigate(item.id) }}
+              href="#"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '9px 16px', borderRadius: 8,
+                background: active ? 'rgba(255,255,255,.1)' : 'transparent',
+                color: active ? '#4ade80' : 'rgba(255,255,255,.5)',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                textDecoration: 'none', transition: 'all .15s',
+              }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = '#fff' } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.5)' } }}
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="flex-1 text-left">{item.label}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
-                <span className="text-[10px] font-bold bg-primary text-black px-2 py-0.5 rounded-full">{item.badge}</span>
+                <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(0,230,40,.15)', color: 'var(--primary)', padding: '2px 6px', borderRadius: 20, border: '1px solid rgba(0,230,40,.2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  {item.badge}
+                </span>
               )}
-            </button>
+            </a>
           )
         })}
       </nav>
 
       {/* Collection */}
-      <div className="px-6 mt-8">
-        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-4">Your Collection</p>
-        <div className="flex flex-col gap-1">
-          <button onClick={() => onNavigate('library')} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/50 hover:bg-white/5 hover:text-white transition-all">
-            <span className="material-symbols-outlined">favorite</span>
-            <span className="flex-1 text-left">Liked Songs</span>
-            <span className="text-xs text-white/30">{playlists.reduce((acc, p) => acc + p.tracks.length, 0)}</span>
-          </button>
-          <button onClick={() => onNavigate('library')} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/50 hover:bg-white/5 hover:text-white transition-all">
-            <span className="material-symbols-outlined">playlist_play</span>
-            <span className="flex-1 text-left">Playlists</span>
-            <span className="text-xs text-white/30">{playlists.length}</span>
-          </button>
+      <div style={{ marginBottom: 8, marginTop: 16, padding: '0 16px' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.25)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>Your Collection</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            { id: 'library' as Page, icon: 'favorite', label: 'Liked Songs' },
+            { id: 'library' as Page, icon: 'playlist_play', label: 'Playlists' },
+          ].map((item, i) => (
+            <a key={i} href="#" onClick={e => { e.preventDefault(); onNavigate(item.id) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px', borderRadius: 8, color: 'rgba(255,255,255,.5)', fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.5)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
         </div>
       </div>
 
       {/* Playlists */}
       {playlists.length > 0 && (
-        <div className="flex-1 overflow-hidden flex flex-col px-3 mt-8">
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-4 px-3">Your Playlists</p>
-          <div className="flex-1 overflow-y-auto">
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
             {playlists.map(pl => (
-              <button key={pl.id} onClick={() => onPlayPlaylist(pl)}
-                className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-white/5 transition-all text-left"
+              <div key={pl.id} onClick={() => onPlayPlaylist(pl)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px', borderRadius: 8, cursor: 'pointer', transition: 'background .15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <img src={pl.cover || `https://picsum.photos/seed/${pl.id}/40/40`} alt={pl.name} className="w-10 h-10 rounded-md object-cover" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white/80 truncate">{pl.name}</p>
-                  <p className="text-xs text-white/30">{pl.tracks.length} tracks</p>
+                <img src={pl.cover || `https://picsum.photos/seed/${pl.id}/32/32`} alt={pl.name} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: '#e2e2e2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pl.name}</p>
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{pl.tracks.length} tracks</p>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
       )}
 
       {/* Upgrade */}
-      <div className="mt-auto p-4 m-3 bg-white/5 rounded-xl border border-white/5">
-        <p className="text-sm font-bold text-white mb-2">Upgrade to Pro</p>
-        <p className="text-xs text-white/40 mb-4 leading-relaxed">Unlock AI-powered imports and unlimited cloud storage.</p>
-        <button className="w-full py-2.5 bg-primary text-black font-bold text-xs rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all">
+      <div style={{ marginTop: 'auto', padding: 16, background: 'var(--bg-mid)', borderRadius: 12, border: '1px solid rgba(255,255,255,.05)' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Upgrade to Pro</p>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 12, lineHeight: 1.5 }}>Unlock high-fidelity AI imports and unlimited cloud storage.</p>
+        <button style={{ width: '100%', padding: '8px', background: 'var(--primary)', color: '#000', fontWeight: 900, fontSize: 11, borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
           Upgrade Now
         </button>
       </div>
-    </div>
+    </aside>
   )
 }
