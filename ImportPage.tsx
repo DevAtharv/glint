@@ -31,13 +31,14 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
    const handleSpotifyImport = async () => {
      const url = spotifyUrl.trim()
      if (!url) { addLog('Paste a Spotify playlist URL first', 'err'); return }
-     if (!url.includes('spotify.com/')) {
+     if (!url.includes('spotify.com/playlist')) {
        addLog('That doesn\'t look like a Spotify playlist URL', 'err')
        return
      }
      reset()
      setLoading(true)
      try {
+       // Use backend if available, otherwise fallback to direct Groq
        if (hasBackend()) {
          const pl = await importFromBackend(url, msg => addLog(msg))
          addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
@@ -59,6 +60,7 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
      reset()
      setLoading(true)
      try {
+       // Use backend if available, otherwise fallback to direct Groq
        if (hasBackend()) {
          const pl = await generateFromBackend(fullPrompt, msg => addLog(msg))
          addLog(`${pl.tracks.length} tracks ready`, 'ok')
@@ -139,7 +141,7 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
             value={spotifyUrl}
             onChange={e => setSpotifyUrl(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSpotifyImport()}
-            placeholder="https://open.spotify.com/playlist/..."
+            placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
             style={{ ...inp, marginBottom: 16 }}
           />
           <button onClick={handleSpotifyImport} disabled={loading || !spotifyUrl.trim()} style={{
