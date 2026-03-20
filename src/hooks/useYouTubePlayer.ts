@@ -33,10 +33,9 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     container.style.cssText = `
       position: fixed;
       bottom: 90px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 400px;
-      height: 225px;
+      right: 20px;
+      width: 320px;
+      height: 180px;
       z-index: 9999;
       border-radius: 12px;
       overflow: hidden;
@@ -48,8 +47,8 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     // Create iframe with YouTube embed
     const iframe = document.createElement('iframe')
     iframe.id = 'yt-iframe'
-    iframe.width = '400'
-    iframe.height = '225'
+    iframe.width = '320'
+    iframe.height = '180'
     iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`
     iframe.allow = 'autoplay; encrypted-media; fullscreen'
     iframe.allowFullscreen = true
