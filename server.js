@@ -137,6 +137,66 @@ function appleMusicId(url) {
   return m?.[0] ?? null
 }
 
+// Scrape Spotify playlist from embed page (no API keys needed!)
+async function scrapeSpotifyEmbed(playlistId) {
+  try {
+    // Get playlist metadata from oembed
+    const oembedRes = await axios.get(
+      `https://open.spotify.com/oembed?url=https://open.spotify.com/playlist/${playlistId}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    )
+    const name = oembedRes.data?.title || 'Spotify Playlist'
+    const cover = oembedRes.data?.thumbnail_url || null
+
+    // Scrape tracks from embed page
+    const embedRes = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    })
+
+    const html = embedRes.data
+    const tracks = []
+
+    // Extract tracks from JSON state in page
+    const jsonMatch = html.match(/\{"uri":"spotify:playlist:[^"]*","name":"[^"]*","description".*?"trackList":\[.*?\]\}/s)
+    if (jsonMatch) {
+      try {
+        const data = JSON.parse(jsonMatch[0])
+        const trackList = data.trackList || []
+        for (const t of trackList) {
+          if (t.title) {
+            tracks.push({
+              title: t.title,
+              artist: t.subtitle || 'Unknown',
+              albumArt: t.imageUrl || null,
+            })
+          }
+        }
+      } catch { /**/ }
+    }
+
+    // Fallback: parse track names from HTML
+    if (tracks.length === 0) {
+      const $ = cheerio.load(html)
+      $('[data-testid="tracklist-row"], .tracklist-row').each((_, el) => {
+        const title = $(el).find('[data-testid="track-name"], .track-name').first().text().trim()
+        const artist = $(el).find('[data-testid="artist-name"], .artist-name').first().text().trim()
+        if (title) tracks.push({ title, artist: artist || 'Unknown', albumArt: null })
+      })
+    }
+
+    if (tracks.length === 0) {
+      throw new Error('Could not extract tracks. Playlist might be private.')
+    }
+
+    return { name, cover, tracks }
+  } catch (e) {
+    throw new Error(`Spotify scrape failed: ${e.message}`)
+  }
+}
+
 // Scrape SoundCloud playlist (public HTML scrape)
 async function scrapeSoundCloud(url) {
   const res = await axios.get(url, {
@@ -193,63 +253,24 @@ app.post('/api/import', async (req, res) => {
       const playlistId = spotifyPlaylistId(url)
       if (!playlistId) return res.status(400).json({ error: 'Invalid Spotify playlist URL' })
 
-      let spotifyWorks = false
       try {
-        if (!process.env.SPOTIFY_CLIENT_ID) {
-          throw new Error('Spotify credentials not configured')
-        }
-        await getSpotifyToken()
-        spotifyWorks = true
+        console.log(`Scraping Spotify embed for playlist: ${playlistId}`)
+        const scraped = await scrapeSpotifyEmbed(playlistId)
+        playlistName = scraped.name
+        playlistCover = scraped.cover
+        rawTracks = scraped.tracks
+        console.log(`Scraped "${playlistName}" — ${rawTracks.length} tracks from embed`)
       } catch (e) {
-        console.warn('Spotify auth failed, falling back to AI:', e.message)
-      }
-
-      if (spotifyWorks) {
-        try {
-          // Fetch playlist info
-          const plData = await spotify.getPlaylist(playlistId, {
-            fields: 'name,images,owner,tracks.total',
-          })
-          playlistName = plData.body.name
-          playlistCover = plData.body.images?.[0]?.url ?? null
-
-          // Fetch all tracks (paginate if > 100)
-          const total = plData.body.tracks.total
-          const pages = Math.ceil(Math.min(total, 100) / 50) // max 100 tracks
-
-          for (let page = 0; page < pages; page++) {
-            const tracksData = await spotify.getPlaylistTracks(playlistId, {
-              limit: 50,
-              offset: page * 50,
-              fields: 'items(track(name,artists,duration_ms))',
-            })
-            tracksData.body.items.forEach(item => {
-              if (item.track?.name) {
-                rawTracks.push({
-                  title: item.track.name,
-                  artist: item.track.artists?.map(a => a.name).join(', ') ?? '',
-                })
-              }
-            })
-          }
-
-          console.log(`Spotify: "${playlistName}" — ${rawTracks.length} tracks`)
-        } catch (e) {
-          console.warn('Spotify API call failed, falling back to AI:', e.message)
-          spotifyWorks = false
-        }
-      }
-
-      if (!spotifyWorks) {
-        // Fall back to AI for Spotify playlists
-        playlistName = 'Spotify Playlist (AI suggestions)'
+        console.error('Spotify embed scrape failed:', e.message)
+        // Fall back to AI
+        playlistName = 'Spotify Playlist'
         if (GROQ_KEY) {
-          const urlHint = new URL(url).pathname.split('/').filter(Boolean).join(' ').replace(/-/g, ' ')
-          rawTracks = await groqGenerateTracks(`Spotify playlist: ${urlHint}`)
-          console.log(`AI generated ${rawTracks.length} tracks for Spotify fallback`)
+          console.log('Falling back to AI for Spotify playlist...')
+          const urlHint = url.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') || 'popular music'
+          rawTracks = await groqGenerateTracks(`songs similar to Spotify playlist: ${urlHint}`)
+          console.log(`AI generated ${rawTracks.length} tracks`)
         } else {
           rawTracks = getFallback('popular music')
-          console.log(`Using ${rawTracks.length} fallback tracks`)
         }
       }
     }
