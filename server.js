@@ -82,7 +82,7 @@ const KNOWN_TRACKS = {
   'firework': 'Q1BqY9eLsCo',
 }
 
-async function searchYouTubeAPI(query) {
+async function searchYouTubeAPI(query, maxResults = 10) {
   try {
     const response = await axios.post('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', {
       context: {
@@ -98,23 +98,36 @@ async function searchYouTubeAPI(query) {
     })
     
     const contents = response.data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || []
+    const results = []
     
     for (const item of contents) {
+      if (results.length >= maxResults) break
+      
       const video = item.videoRenderer
       if (!video?.videoId) continue
       
-      return {
-        youtubeId: video.videoId,
-        title: video.title?.runs?.[0]?.text || 'Unknown',
-        artist: video.ownerText?.runs?.[0]?.text || 'Unknown',
-        albumArt: video.thumbnail?.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-        duration: 0,
+      // Parse duration from lengthText
+      let duration = 0
+      const lengthText = video.lengthText?.simpleText || video.lengthText?.runs?.[0]?.text
+      if (lengthText) {
+        const parts = lengthText.split(':').reverse()
+        duration = parts.reduce((acc, part, i) => acc + (parseInt(part || '0') * Math.pow(60, i)), 0)
       }
+      
+      results.push({
+        youtubeId: video.videoId,
+        title: video.title?.runs?.[0]?.text || video.title?.simpleText || 'Unknown',
+        artist: video.ownerText?.runs?.[0]?.text || video.shortBylineText?.runs?.[0]?.text || 'Unknown',
+        albumArt: video.thumbnail?.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+        duration,
+      })
     }
+    
+    return results
   } catch (e) {
     console.error('YouTube internal API error:', e.message)
   }
-  return null
+  return []
 }
 
 async function matchTrackOnYouTube(title, artist) {
@@ -135,9 +148,9 @@ async function matchTrackOnYouTube(title, artist) {
   }
   
   // Try YouTube's internal API
-  const result = await searchYouTubeAPI(`${title} ${artist}`)
-  if (result) {
-    return { id: result.youtubeId, ...result }
+  const results = await searchYouTubeAPI(`${title} ${artist}`, 1)
+  if (results.length > 0) {
+    return { id: results[0].youtubeId, ...results[0] }
   }
   
   // Return without youtubeId
@@ -624,8 +637,7 @@ app.get('/api/search', async (req, res) => {
   if (!q) return res.status(400).json({ error: 'Query required' })
 
   try {
-    const result = await searchYouTubeAPI(q)
-    const results = result ? [result] : []
+    const results = await searchYouTubeAPI(q, parseInt(limit))
     res.json(results)
   } catch (err) {
     res.status(500).json({ error: err.message })
