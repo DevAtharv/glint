@@ -280,23 +280,37 @@ app.post('/api/import', async (req, res) => {
       const playlistId = spotifyPlaylistId(url)
       if (!playlistId) return res.status(400).json({ error: 'Invalid Spotify playlist URL' })
 
+      // Simple check: if we can't fetch the embed, it's likely private
+      let canAccess = false
+      try {
+        const embedCheck = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          timeout: 10000,
+          validateStatus: () => true // Accept any status
+        })
+        
+        // If we get a 200 and the page doesn't contain error messages, we can access it
+        if (embedCheck.status === 200 && embedCheck.data && typeof embedCheck.data === 'string') {
+          if (!embedCheck.data.toLowerCase().includes('page not available') && 
+              !embedCheck.data.toLowerCase().includes('not available') &&
+              embedCheck.data.length > 1000) { // Real page should be large
+            canAccess = true
+          }
+        }
+        console.log(`Embed check: status=${embedCheck.status}, canAccess=${canAccess}, length=${embedCheck.data?.length || 0}`)
+      } catch (checkErr) {
+        console.log('Embed check failed:', checkErr.message)
+      }
+
+      if (!canAccess) {
+        console.log('Playlist appears to be private or unavailable')
+        return res.status(400).json({ 
+          error: 'This playlist is private or unavailable. Please make it public in Spotify: Open playlist → ⋯ → "Make Public", then try again.' 
+        })
+      }
+
       try {
         console.log(`Scraping Spotify embed for playlist: ${playlistId}`)
-        
-        // First check if playlist is accessible
-        try {
-          const pageCheck = await axios.get(`https://open.spotify.com/playlist/${playlistId}`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 5000
-          })
-          if (pageCheck.data.includes('Page not available') || pageCheck.data.includes('not available')) {
-            throw new Error('PRIVATE_PLAYLIST')
-          }
-        } catch (pageErr) {
-          if (pageErr.message === 'PRIVATE_PLAYLIST') throw pageErr
-          // Network error, continue anyway
-        }
-
         const scraped = await scrapeSpotifyEmbed(playlistId)
         playlistName = scraped.name
         playlistCover = scraped.cover
@@ -304,13 +318,6 @@ app.post('/api/import', async (req, res) => {
         console.log(`Scraped "${playlistName}" — ${rawTracks.length} tracks from embed`)
       } catch (e) {
         console.error('Spotify embed scrape failed:', e.message)
-        
-        if (e.message === 'PRIVATE_PLAYLIST') {
-          return res.status(400).json({ 
-            error: 'This playlist is private. Please make it public in Spotify first: Open playlist → "..." → "Make Public"' 
-          })
-        }
-        
         // Fall back to AI
         playlistName = 'Spotify Playlist'
         if (GROQ_KEY) {
