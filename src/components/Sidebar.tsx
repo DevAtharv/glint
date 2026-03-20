@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Page, Playlist, Track } from '../types'
+import { formatTime } from '../utils/helpers'
 
 interface SidebarProps {
   currentPage: Page
@@ -9,80 +10,120 @@ interface SidebarProps {
   currentTrack: Track | null
 }
 
-const NAV = [
-  { id: 'home' as Page,    icon: 'home',          label: 'Home' },
-  { id: 'search' as Page,  icon: 'search',        label: 'Search' },
-  { id: 'library' as Page, icon: 'library_music', label: 'Library' },
-  { id: 'import' as Page,  icon: 'cloud_upload',  label: 'Import' },
+const navItems: { id: Page; label: string; icon: React.ReactNode; badge?: string }[] = [
+  {
+    id: 'home', label: 'Home',
+    icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
+  },
+  {
+    id: 'search', label: 'Search',
+    icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
+  },
+  {
+    id: 'library', label: 'Library',
+    icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>,
+  },
+  {
+    id: 'import', label: 'Import Playlist',
+    badge: 'AI',
+    icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  },
 ]
 
 export default function Sidebar({ currentPage, onNavigate, playlists, onPlayPlaylist, currentTrack }: SidebarProps) {
   return (
-    <div className="flex flex-col h-full bg-black p-4 border-r border-white/10">
+    <aside style={{
+      gridRow: '1/3',
+      background: '#0E1018',
+      borderRight: '1px solid rgba(255,255,255,.06)',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
       {/* Logo */}
-      <div className="mb-8 px-4 flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined text-black font-bold">music_note</span>
+      <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 9, background: '#6C63FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-green-500 leading-none">Glint</h1>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Music App</p>
-        </div>
+        <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: '#EEF0FF' }}>
+          Gl<em style={{ fontStyle: 'italic', color: '#8B85FF' }}>i</em>nt
+        </span>
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-1 flex-1">
-        {NAV.map(item => {
-          const active = currentPage === item.id
-          return (
-            <a key={item.id}
-              onClick={(e) => { e.preventDefault(); onNavigate(item.id) }}
-              href="#"
-              className={`flex items-center gap-3 text-white/60 px-4 py-2 hover:bg-white/5 hover:text-white transition-all duration-200 ease-in-out ${active ? 'bg-white/10 text-green-400 rounded-lg' : ''}`}
-            >
-              <span className="material-symbols-outlined" data-icon={item.icon}>{item.icon}</span>
-              <span className="font-medium text-sm">{item.label}</span>
-            </a>
-          )
-        })}
-
-        <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-white/30 uppercase tracking-widest">Your Collection</div>
-        <a className="flex items-center gap-3 text-white/60 px-4 py-2 hover:bg-white/5 hover:text-white transition-all duration-200 ease-in-out" href="#" onClick={e => { e.preventDefault(); onNavigate('library') }}>
-          <span className="material-symbols-outlined" data-icon="favorite">favorite</span>
-          <span className="font-medium text-sm">Liked Songs</span>
-        </a>
-        <a className="flex items-center gap-3 text-white/60 px-4 py-2 hover:bg-white/5 hover:text-white transition-all duration-200 ease-in-out" href="#" onClick={e => { e.preventDefault(); onNavigate('library') }}>
-          <span className="material-symbols-outlined" data-icon="playlist_play">playlist_play</span>
-          <span className="font-medium text-sm">Playlists</span>
-        </a>
-      </nav>
+      <div style={{ padding: '16px 12px 8px' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', color: '#494D66', textTransform: 'uppercase', padding: '0 8px', marginBottom: 6 }}>Menu</p>
+        {navItems.map(item => (
+          <div
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 8px', borderRadius: 9, cursor: 'pointer',
+              marginBottom: 2, position: 'relative',
+              background: currentPage === item.id ? 'rgba(108,99,255,.12)' : 'transparent',
+              color: currentPage === item.id ? '#8B85FF' : '#8B8FA8',
+              fontSize: 13, fontWeight: 500,
+              transition: 'all .15s',
+            }}
+            onMouseEnter={e => { if (currentPage !== item.id) e.currentTarget.style.background = '#1F2233' }}
+            onMouseLeave={e => { if (currentPage !== item.id) e.currentTarget.style.background = 'transparent' }}
+          >
+            {currentPage === item.id && (
+              <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: '#6C63FF', borderRadius: '0 3px 3px 0' }} />
+            )}
+            {item.icon}
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.badge && (
+              <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(108,99,255,.12)', color: '#8B85FF', padding: '2px 7px', borderRadius: 20, border: '1px solid rgba(108,99,255,.2)' }}>
+                {item.badge}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* Playlists */}
-      {playlists.length > 0 && (
-        <div className="flex-1 overflow-hidden flex flex-col mt-4">
-          <div className="flex-1 overflow-y-auto">
-            {playlists.map(pl => (
-              <div key={pl.id} onClick={() => onPlayPlaylist(pl)}
-                className="flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/5 transition-all"
-              >
-                <img src={pl.cover || `https://picsum.photos/seed/${pl.id}/40/40`} alt={pl.name} className="w-10 h-10 rounded object-cover" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white/80 truncate">{pl.name}</p>
-                  <p className="text-xs text-white/30">{pl.tracks.length} tracks</p>
-                </div>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '8px 12px' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', color: '#494D66', textTransform: 'uppercase', padding: '0 8px', marginBottom: 8 }}>Your Playlists</p>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {playlists.length === 0 && (
+            <p style={{ fontSize: 12, color: '#494D66', padding: '8px 8px' }}>No playlists yet. Import one!</p>
+          )}
+          {playlists.map(pl => (
+            <div
+              key={pl.id}
+              onClick={() => onPlayPlaylist(pl)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '7px 8px', borderRadius: 8, cursor: 'pointer',
+                marginBottom: 2, transition: 'background .15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#1F2233'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <img src={pl.cover} alt={pl.name} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 500, color: '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pl.name}</p>
+                <p style={{ fontSize: 10, color: '#494D66', marginTop: 1 }}>{pl.tracks.length} tracks</p>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Now playing in sidebar */}
+      {currentTrack && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,.06)' }}>
+          <p style={{ fontSize: 10, color: '#494D66', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>Now Playing</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src={currentTrack.albumArt} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} />
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentTrack.title}</p>
+              <p style={{ fontSize: 10, color: '#8B8FA8', marginTop: 1 }}>{currentTrack.artist}</p>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Upgrade */}
-      <div className="mt-auto p-4 bg-surface-container-low rounded-xl border border-white/5">
-        <p className="text-xs text-white/60 mb-3">Unlock high-fidelity AI imports and unlimited cloud storage.</p>
-        <button className="w-full py-2 bg-primary text-black font-bold rounded-lg text-sm active:scale-95 transition-transform">
-          Upgrade to Pro
-        </button>
-      </div>
-    </div>
+    </aside>
   )
 }
