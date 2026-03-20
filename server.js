@@ -282,6 +282,21 @@ app.post('/api/import', async (req, res) => {
 
       try {
         console.log(`Scraping Spotify embed for playlist: ${playlistId}`)
+        
+        // First check if playlist is accessible
+        try {
+          const pageCheck = await axios.get(`https://open.spotify.com/playlist/${playlistId}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 5000
+          })
+          if (pageCheck.data.includes('Page not available') || pageCheck.data.includes('not available')) {
+            throw new Error('PRIVATE_PLAYLIST')
+          }
+        } catch (pageErr) {
+          if (pageErr.message === 'PRIVATE_PLAYLIST') throw pageErr
+          // Network error, continue anyway
+        }
+
         const scraped = await scrapeSpotifyEmbed(playlistId)
         playlistName = scraped.name
         playlistCover = scraped.cover
@@ -289,6 +304,13 @@ app.post('/api/import', async (req, res) => {
         console.log(`Scraped "${playlistName}" — ${rawTracks.length} tracks from embed`)
       } catch (e) {
         console.error('Spotify embed scrape failed:', e.message)
+        
+        if (e.message === 'PRIVATE_PLAYLIST') {
+          return res.status(400).json({ 
+            error: 'This playlist is private. Please make it public in Spotify first: Open playlist → "..." → "Make Public"' 
+          })
+        }
+        
         // Fall back to AI
         playlistName = 'Spotify Playlist'
         if (GROQ_KEY) {
