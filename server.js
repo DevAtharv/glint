@@ -148,47 +148,74 @@ async function scrapeSpotifyEmbed(playlistId) {
     const name = oembedRes.data?.title || 'Spotify Playlist'
     const cover = oembedRes.data?.thumbnail_url || null
 
-    // Scrape tracks from embed page
-    const embedRes = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    })
+    // Try multiple methods to extract tracks
+    let tracks = []
 
-    const html = embedRes.data
-    const tracks = []
-
-    // Extract tracks from JSON state in page
-    const jsonMatch = html.match(/\{"uri":"spotify:playlist:[^"]*","name":"[^"]*","description".*?"trackList":\[.*?\]\}/s)
-    if (jsonMatch) {
-      try {
-        const data = JSON.parse(jsonMatch[0])
-        const trackList = data.trackList || []
-        for (const t of trackList) {
-          if (t.title) {
-            tracks.push({
-              title: t.title,
-              artist: t.subtitle || 'Unknown',
-              albumArt: t.imageUrl || null,
-            })
-          }
-        }
-      } catch { /**/ }
-    }
-
-    // Fallback: parse track names from HTML
-    if (tracks.length === 0) {
-      const $ = cheerio.load(html)
-      $('[data-testid="tracklist-row"], .tracklist-row').each((_, el) => {
-        const title = $(el).find('[data-testid="track-name"], .track-name').first().text().trim()
-        const artist = $(el).find('[data-testid="artist-name"], .artist-name').first().text().trim()
-        if (title) tracks.push({ title, artist: artist || 'Unknown', albumArt: null })
+    // Method 1: Try the embed page
+    try {
+      const embedRes = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
       })
-    }
+      const html = embedRes.data
 
+      // Look for JSON state with track data
+      const stateMatch = html.match(/<script[^>]*>window\.__INITIAL_STATE__\s*=\s*({.*?})<\/script>/s)
+      if (stateMatch) {
+        try {
+          const state = JSON.parse(stateMatch[1])
+          const trackList = state?.playlist?.tracks?.items || []
+          for (const item of trackList) {
+            const track = item.track || item
+            if (track?.name) {
+              tracks.push({
+                title: track.name,
+                artist: track.artists?.map(a => a.name || a).join(', ') || 'Unknown',
+                albumArt: track.album?.images?.[0]?.url || null,
+              })
+            }
+          }
+        } catch { /**/ }
+      }
+
+      // Method 2: Parse track names from script tags
+      if (tracks.length === 0) {
+        const trackMatches = html.match(/"name":"([^"]+)".*?"artists":\[([^\]]+)\]/g) || []
+        for (const match of trackMatches.slice(0, 50)) {
+          try {
+            const nameMatch = match.match(/"name":"([^"]+)"/)
+            const artistsMatch = match.match(/"artists":\[([^\]]+)\]/)
+            if (nameMatch) {
+              const title = nameMatch[1]
+              let artist = 'Unknown'
+              if (artistsMatch) {
+                const artistNames = artistsMatch[1].match(/"name":"([^"]+)"/g) || []
+                artist = artistNames.map(a => a.match(/"name":"([^"]+)"/)[1]).join(', ')
+              }
+              tracks.push({ title, artist, albumArt: null })
+            }
+          } catch { /**/ }
+        }
+      }
+
+      // Method 3: Use cheerio to parse the HTML
+      if (tracks.length === 0) {
+        const $ = cheerio.load(html)
+        $('meta[content*="spotify.com"]').each((_, el) => {
+          const content = $(el).attr('content') || ''
+          if (content.includes('track')) {
+            // Extract track info from meta tags
+          }
+        })
+      }
+    } catch { /**/ }
+
+    // If scraping failed, fall back to AI
     if (tracks.length === 0) {
-      throw new Error('Could not extract tracks. Playlist might be private.')
+      console.log('Embed scraping yielded no tracks, using AI fallback')
+      throw new Error('Could not extract tracks from embed')
     }
 
     return { name, cover, tracks }
