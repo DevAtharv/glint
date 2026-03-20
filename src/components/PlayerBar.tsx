@@ -113,6 +113,7 @@ export default function PlayerBar({
           style={{ width: 80, accentColor: '#6C63FF' }}
         />
       </div>
+      </div>
     </div>
   )
 }
