@@ -11,76 +11,51 @@ interface Props {
 }
 
 export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDuration, onEnded, seekTo }: Props) {
-  const timerRef = useRef<any>(null)
   const prevVideoId = useRef<string | null>(null)
+  const timerRef = useRef<any>(null)
+  const windowRef = useRef<Window | null>(null)
 
   useEffect(() => {
     if (!videoId) return
     if (videoId === prevVideoId.current) return
     
     prevVideoId.current = videoId
-    
-    // Clear any existing timer
+
+    // Clear existing timer
     if (timerRef.current) clearInterval(timerRef.current)
 
-    // Remove old player
-    const oldPlayer = document.getElementById('yt-player-embed')
-    if (oldPlayer) oldPlayer.remove()
+    // Close existing window
+    if (windowRef.current && !windowRef.current.closed) {
+      windowRef.current.close()
+    }
 
-    // Create a visible, clickable YouTube player
-    const container = document.createElement('div')
-    container.id = 'yt-player-embed'
-    container.style.cssText = `
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 320px;
-      height: 180px;
-      z-index: 9999;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-      background: #000;
-      border: 2px solid rgba(108,99,255,0.5);
-    `
-    
-    // Create iframe with YouTube embed
-    const iframe = document.createElement('iframe')
-    iframe.id = 'yt-iframe'
-    iframe.width = '320'
-    iframe.height = '180'
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`
-    iframe.allow = 'autoplay; encrypted-media; fullscreen'
-    iframe.allowFullscreen = true
-    iframe.style.border = 'none'
-    
-    container.appendChild(iframe)
-    document.body.appendChild(container)
+    // Open YouTube in a new window
+    const url = `https://www.youtube.com/watch?v=${videoId}&autoplay=1`
+    windowRef.current = window.open(url, '_blank', 'width=560,height=315')
 
-    // Simulate progress tracking
+    // Simulate progress
     let elapsed = 0
     timerRef.current = setInterval(() => {
       elapsed += 1
       onProgress(elapsed)
     }, 1000)
-    
-    // Assume 3 minute duration
-    onDuration(180)
 
-    console.log('YouTube player created for video:', videoId)
+    onDuration(180) // Assume 3 minutes
+
+    console.log('Opened YouTube:', url)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
-      container.remove()
     }
   }, [videoId, onProgress, onDuration])
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
-      const player = document.getElementById('yt-player-embed')
-      if (player) player.remove()
+      if (windowRef.current && !windowRef.current.closed) {
+        windowRef.current.close()
+      }
     }
   }, [])
 }
