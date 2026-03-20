@@ -11,64 +11,54 @@ interface Props {
 }
 
 export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDuration, onEnded, seekTo }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const timerRef = useRef<any>(null)
   const prevVideoId = useRef<string | null>(null)
 
-  // Create container on mount
   useEffect(() => {
-    // Remove any existing container
-    const existing = document.getElementById('yt-player-container')
-    if (existing) existing.remove()
-
-    // Create a visible container for the YouTube player
-    const container = document.createElement('div')
-    container.id = 'yt-player-container'
-    container.style.cssText = `
-      position: fixed;
-      bottom: 100px;
-      right: 20px;
-      width: 320px;
-      height: 180px;
-      z-index: 10000;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      background: #000;
-    `
-    document.body.appendChild(container)
-    containerRef.current = container
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-      container.remove()
-    }
-  }, [])
-
-  // Update iframe when video changes
-  useEffect(() => {
-    if (!videoId || !containerRef.current) return
+    if (!videoId) return
     if (videoId === prevVideoId.current) return
-
+    
     prevVideoId.current = videoId
     
-    // Clear existing content
-    containerRef.current.innerHTML = ''
+    // Clear any existing timer
+    if (timerRef.current) clearInterval(timerRef.current)
 
-    // Create iframe
+    // Remove old player
+    const oldPlayer = document.getElementById('yt-player-embed')
+    if (oldPlayer) oldPlayer.remove()
+
+    // Create a visible, clickable YouTube player
+    const container = document.createElement('div')
+    container.id = 'yt-player-embed'
+    container.style.cssText = `
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 225px;
+      z-index: 9999;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+      background: #000;
+      border: 2px solid rgba(108,99,255,0.5);
+    `
+    
+    // Create iframe with YouTube embed
     const iframe = document.createElement('iframe')
-    iframe.width = '320'
-    iframe.height = '180'
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`
+    iframe.id = 'yt-iframe'
+    iframe.width = '400'
+    iframe.height = '225'
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`
     iframe.allow = 'autoplay; encrypted-media; fullscreen'
+    iframe.allowFullscreen = true
     iframe.style.border = 'none'
     
-    containerRef.current.appendChild(iframe)
-    iframeRef.current = iframe
+    container.appendChild(iframe)
+    document.body.appendChild(container)
 
-    // Start progress timer (simulated since we can't get real progress from embed)
-    if (timerRef.current) clearInterval(timerRef.current)
+    // Simulate progress tracking
     let elapsed = 0
     timerRef.current = setInterval(() => {
       elapsed += 1
@@ -78,16 +68,20 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     // Assume 3 minute duration
     onDuration(180)
 
-    console.log('Playing video:', videoId)
+    console.log('YouTube player created for video:', videoId)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      container.remove()
     }
   }, [videoId, onProgress, onDuration])
 
-  // Show/hide based on playing state
+  // Cleanup on unmount
   useEffect(() => {
-    if (!containerRef.current) return
-    containerRef.current.style.display = isPlaying ? 'block' : 'none'
-  }, [isPlaying])
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      const player = document.getElementById('yt-player-embed')
+      if (player) player.remove()
+    }
+  }, [])
 }
