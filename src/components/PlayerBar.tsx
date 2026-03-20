@@ -24,21 +24,21 @@ interface PlayerBarProps {
 export default function PlayerBar({ track, isPlaying, progress, currentSecs, shuffle, repeat, liked, volume, onTogglePlay, onNext, onPrev, onSeek, onShuffle, onRepeat, onLike, onVolumeChange }: PlayerBarProps) {
   const canPlay = !!track?.youtubeId
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     onSeek(((e.clientX - rect.left) / rect.width) * 100)
   }
 
   if (!track) return (
-    <footer style={{ gridColumn: '2', background: 'rgba(15,15,15,.95)', borderTop: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ gridColumn: 2, background: 'rgba(15,15,15,.95)', borderTop: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,.25)' }}>Search or browse to start listening</p>
-    </footer>
+    </div>
   )
 
   return (
-    <footer style={{ gridColumn: '2', background: 'rgba(15,15,15,.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,.05)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ gridColumn: 2, background: 'rgba(15,15,15,.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,.05)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Progress bar — top edge */}
-      <div onClick={handleSeek} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.08)', cursor: 'pointer', zIndex: 10 }}>
+      <div onClick={handleProgressClick} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.08)', cursor: 'pointer', zIndex: 10 }}>
         <div style={{ height: '100%', width: `${Math.min(100, progress)}%`, background: 'var(--primary)', boxShadow: '0 0 8px rgba(0,230,40,.5)', borderRadius: '0 3px 3px 0', transition: 'width .5s linear' }} />
       </div>
 
@@ -84,7 +84,7 @@ export default function PlayerBar({ track, isPlaying, progress, currentSecs, shu
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 360 }}>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', minWidth: 30, textAlign: 'right' }}>{formatTime(currentSecs)}</span>
-            <div onClick={handleSeek} style={{ flex: 1, height: 3, background: 'rgba(255,255,255,.1)', borderRadius: 3, cursor: 'pointer', position: 'relative' }}>
+            <div onClick={handleProgressClick} style={{ flex: 1, height: 3, background: 'rgba(255,255,255,.1)', borderRadius: 3, cursor: 'pointer', position: 'relative' }}>
               <div style={{ width: `${Math.min(100, progress)}%`, height: '100%', background: 'rgba(255,255,255,.7)', borderRadius: 3 }} />
             </div>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', minWidth: 30 }}>{formatTime(track.duration || 0)}</span>
@@ -112,6 +112,6 @@ export default function PlayerBar({ track, isPlaying, progress, currentSecs, shu
           This track wasn't matched on YouTube
         </div>
       )}
-    </footer>
+    </div>
   )
 }
