@@ -519,7 +519,7 @@ app.post('/api/import', async (req, res) => {
         : 'Unknown',
       tracks,
       total: rawTracks.length,
-      matched: found,
+      matched: matchCount,
     })
 
   } catch (err) {
