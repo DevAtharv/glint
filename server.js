@@ -350,43 +350,26 @@ app.post('/api/import', async (req, res) => {
       if (rawTracks.length === 0) {
         console.log('Trying web scraping for Spotify playlist...')
         try {
-          const webRes = await axios.get(`https://open.spotify.com/playlist/${playlistId}`, {
+          // Try the embed endpoint which is more reliable
+          const embedRes = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept-Language': 'en-US,en;q=0.9',
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
             },
-            timeout: 10000
+            timeout: 15000
           })
 
-          const html = webRes.data
+          const html = embedRes.data
           
           // Check if page is available
-          if (html.includes('Page not available')) {
+          if (html.includes('Page not available') || html.includes('not available')) {
             return res.status(400).json({ 
               error: 'This playlist is private or unavailable. Please make it public in Spotify first.' 
             })
           }
 
-          // Try to extract tracks from the HTML
-          // Spotify embeds track data in script tags as JSON
-          const scriptMatches = html.match(/<script[^>]*>([^<]*"track"[^<]*)<\/script>/gi) || []
-          for (const script of scriptMatches) {
-            try {
-              const jsonMatch = script.match(/{.*"track".*}/s)
-              if (jsonMatch) {
-                const data = JSON.parse(jsonMatch[0])
-                if (data.track?.name) {
-                  rawTracks.push({
-                    title: data.track.name,
-                    artist: data.track.artists?.map(a => a.name).join(', ') || 'Unknown'
-                  })
-                }
-              }
-            } catch { /**/ }
-          }
-
-          // Also try to extract from Next.js data
+          // Extract tracks from Next.js data
           const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([^<]*)<\/script>/)
           if (nextDataMatch) {
             try {
@@ -400,11 +383,49 @@ app.post('/api/import', async (req, res) => {
                   })
                 }
               }
+              playlistName = nextData?.props?.pageProps?.state?.data?.entity?.name || 'Spotify Playlist'
+              console.log(`Extracted ${rawTracks.length} tracks from embed Next.js data`)
+            } catch (e) {
+              console.log('Failed to parse Next.js data:', e.message)
+            }
+          }
+
+          // If Next.js parsing failed, try to extract from script tags
+          if (rawTracks.length === 0) {
+            const scriptMatches = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || []
+            for (const script of scriptMatches) {
+              // Look for track data in various formats
+              const trackMatches = script.match(/"name"\s*:\s*"([^"]+)"[^}]*"artists"\s*:\s*\[\s*{[^}]*"name"\s*:\s*"([^"]+)"/g) || []
+              for (const match of trackMatches) {
+                try {
+                  const nameMatch = match.match(/"name"\s*:\s*"([^"]+)"/)
+                  const artistMatch = match.match(/"name"\s*:\s*"([^"]+)"\s*}\s*\]/)
+                  if (nameMatch && artistMatch) {
+                    rawTracks.push({
+                      title: nameMatch[1],
+                      artist: artistMatch[1]
+                    })
+                  }
+                } catch { /**/ }
+              }
+            }
+            console.log(`Extracted ${rawTracks.length} tracks from script tags`)
+          }
+
+          // Try oembed for playlist name
+          if (!playlistName || playlistName === 'Spotify Playlist') {
+            try {
+              const oembedRes = await axios.get(`https://open.spotify.com/oembed?url=https://open.spotify.com/playlist/${playlistId}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                timeout: 5000
+              })
+              if (oembedRes.data?.title) {
+                playlistName = oembedRes.data.title
+                console.log(`Got playlist name from oembed: ${playlistName}`)
+              }
             } catch { /**/ }
           }
 
-          playlistName = 'Spotify Playlist'
-          console.log(`Web scraping got ${rawTracks.length} tracks`)
         } catch (e) {
           console.error('Web scraping failed:', e.message)
         }
