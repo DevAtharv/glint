@@ -22,26 +22,26 @@ function TopBar({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const initials = displayUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', position: 'sticky', top: 0, background: 'linear-gradient(180deg,#080A0F 70%,transparent)', zIndex: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', position: 'sticky', top: 0, background: 'linear-gradient(180deg,#131313 70%,transparent)', zIndex: 10 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <button style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#8B8FA8"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#888"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         </button>
         <button style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#8B8FA8"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#888"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
         </button>
       </div>
       <div style={{ position: 'relative', width: 260 }}>
-        <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="14" height="14" viewBox="0 0 24 24" fill="#494D66">
+        <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="14" height="14" viewBox="0 0 24 24" fill="#474747">
           <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
         </svg>
         <input onFocus={() => onNavigate('search')} placeholder="Search songs, artists..."
-          style={{ width: '100%', background: '#141720', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '9px 14px 9px 36px', color: '#EEF0FF', fontSize: 13, fontFamily: "'Manrope',sans-serif", outline: 'none' }} />
+          style={{ width: '100%', background: '#1b1b1b', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '9px 14px 9px 36px', color: '#e2e2e2', fontSize: 13, fontFamily: "'Inter',sans-serif", outline: 'none' }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(45,216,129,.1)', color: '#2DD881', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(45,216,129,.15)' }}>Ad-free</span>
+        <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(0,230,40,.1)', color: '#00e628', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(0,230,40,.15)' }}>Ad-free</span>
         {isDemo && <span style={{ fontSize: 10, color: '#f5a623', background: 'rgba(245,166,35,.1)', padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(245,166,35,.2)' }}>Demo</span>}
-        <div onClick={() => onNavigate('profile')} style={{ width: 34, height: 34, borderRadius: '50%', background: '#6C63FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+        <div onClick={() => onNavigate('profile')} style={{ width: 34, height: 34, borderRadius: '50%', background: '#00e628', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000', cursor: 'pointer' }}>
           {initials}
         </div>
       </div>

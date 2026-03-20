@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,19 +11,19 @@
 }
 
 :root {
-  --bg: #080A0F;
-  --bg2: #0E1018;
-  --bg3: #141720;
-  --card: #191C28;
-  --hover: #1F2233;
-  --accent: #6C63FF;
-  --accent2: #8B85FF;
-  --accent-dim: rgba(108, 99, 255, 0.12);
-  --red: #FF4D6D;
-  --green: #2DD881;
-  --t1: #EEF0FF;
-  --t2: #8B8FA8;
-  --tm: #494D66;
+  --bg: #131313;
+  --bg2: #1b1b1b;
+  --bg3: #1f1f1f;
+  --card: #2a2a2a;
+  --hover: #353535;
+  --accent: #00e628;
+  --accent2: #00ff2f;
+  --accent-dim: rgba(0, 230, 40, 0.12);
+  --red: #ff4d6d;
+  --green: #00e628;
+  --t1: #e2e2e2;
+  --t2: #888;
+  --tm: #474747;
   --border: rgba(255, 255, 255, 0.06);
   --border2: rgba(255, 255, 255, 0.12);
 }
@@ -36,7 +36,7 @@ html, body, #root {
 body {
   background: var(--bg);
   color: var(--t1);
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
@@ -62,14 +62,14 @@ input[type=range]::-webkit-slider-thumb {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--t1);
+  background: var(--accent);
   cursor: pointer;
 }
 input[type=range]::-moz-range-thumb {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--t1);
+  background: var(--accent);
   border: none;
   cursor: pointer;
 }
@@ -79,7 +79,7 @@ input[type=text],
 input[type=email],
 input[type=password],
 textarea {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 /* Animations */
