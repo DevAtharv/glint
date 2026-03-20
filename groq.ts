@@ -1,90 +1,110 @@
-/**
- * groq.ts — ALL Groq calls go through the backend.
- * VITE_GROQ_API_KEY is NOT used here anymore — keep it only in backend .env
- * Frontend only calls /api/generate and /api/spotify/import
- */
 import { searchYouTube } from './youtube'
 import type { Track, Playlist } from '../types'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
+const BACKEND = (import.meta.env.VITE_BACKEND_URL || '').trim()
 
-// ── GENERATE FROM PROMPT ─────────────────────────────────────────────────────
 export async function generatePlaylistFromPrompt(
   prompt: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
-  if (!BACKEND) {
-    // No backend — use fallback pairs + YouTube search directly
-    onProgress('No backend configured — using curated tracks...')
-    const pairs = getFallbackPairs(prompt)
-    return buildPlaylistFromPairs(pairs, prompt, onProgress)
+  onProgress(`Generating: "${prompt}"`)
+
+  if (BACKEND) {
+    try {
+      onProgress('Calling backend AI...')
+      const res = await fetch(`${BACKEND}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      onProgress(`Got ${data.tracks.length} tracks from AI`)
+      return {
+        id: `ai-${Date.now()}`,
+        name: data.name || prompt.slice(0, 40),
+        cover: data.tracks[0]?.albumArt || '',
+        tracks: data.tracks as Track[],
+        createdAt: new Date().toISOString(),
+      }
+    } catch (e: unknown) {
+      onProgress(`Backend error: ${e instanceof Error ? e.message : 'failed'} — using fallback`)
+    }
   }
 
-  onProgress('Asking AI via backend...')
-  try {
-    const res = await fetch(`${BACKEND}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || `Backend error ${res.status}`)
-    onProgress(`AI suggested ${data.tracks.length} tracks`)
-    return {
-      id: `ai-${Date.now()}`,
-      name: data.name || prompt.slice(0, 40),
-      cover: data.tracks[0]?.albumArt || '',
-      tracks: data.tracks as Track[],
-      createdAt: new Date().toISOString(),
+  // Fallback: use Groq directly from browser if key is set
+  const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY?.trim()
+  if (GROQ_KEY) {
+    try {
+      onProgress('Calling Groq AI directly...')
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${GROQ_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a music expert. Suggest 10 real songs matching the description.
+Return ONLY a JSON array: [{"title":"Song Name","artist":"Artist Name"},...]`,
+            },
+            { role: 'user', content: `Playlist for: ${prompt}` },
+          ],
+          max_tokens: 800,
+          temperature: 0.8,
+        }),
+      })
+      const data = await res.json()
+      const text = data.choices?.[0]?.message?.content ?? ''
+      const match = text.match(/\[[\s\S]*?\]/)
+      if (match) {
+        const pairs = JSON.parse(match[0]) as { title: string; artist: string }[]
+        onProgress(`Groq suggested ${pairs.length} tracks, searching YouTube...`)
+        return buildFromPairs(pairs, prompt, onProgress)
+      }
+    } catch (e: unknown) {
+      onProgress(`Groq error: ${e instanceof Error ? e.message : 'failed'} — using fallback`)
     }
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Unknown error'
-    onProgress(`Backend error: ${msg} — using fallback tracks...`)
-    const pairs = getFallbackPairs(prompt)
-    return buildPlaylistFromPairs(pairs, prompt, onProgress)
   }
+
+  onProgress('Using curated fallback tracks...')
+  const pairs = getFallbackPairs(prompt)
+  return buildFromPairs(pairs, prompt, onProgress)
 }
 
-// ── IMPORT FROM URL (Spotify only, others use fallback) ──────────────────────
 export async function importPlaylistFromUrl(
   url: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
   if (!BACKEND) {
-    onProgress('Backend not configured — set VITE_BACKEND_URL in .env for Spotify import')
-    onProgress('Generating similar tracks with fallback...')
-    const pairs = getFallbackPairs('popular music')
-    return buildPlaylistFromPairs(pairs, 'Imported Playlist', onProgress)
+    onProgress('No backend URL — add VITE_BACKEND_URL=http://localhost:3001 to .env')
+    onProgress('Generating similar tracks with AI instead...')
+    const urlHint = url.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') ?? 'popular'
+    return generatePlaylistFromPrompt(urlHint, onProgress)
   }
 
-  onProgress('Sending to backend...')
-  try {
-    const res = await fetch(`${BACKEND}/api/spotify/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || `Backend error ${res.status}`)
-    onProgress(`Found "${data.name}" — ${data.matched} of ${data.total} tracks matched on YouTube`)
-    return {
-      id: `spotify-${Date.now()}`,
-      name: data.name,
-      cover: data.cover || data.tracks[0]?.albumArt || '',
-      tracks: data.tracks as Track[],
-      createdAt: new Date().toISOString(),
-    }
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Unknown'
-    if (msg.includes('fetch') || msg.includes('network') || msg.includes('ECONNREFUSED')) {
-      throw new Error('Cannot reach backend. Make sure glint-backend is running: cd glint-backend && node server.js')
-    }
-    throw e
+  onProgress('Connecting to backend...')
+  const res = await fetch(`${BACKEND}/api/import`, {   // ← fixed: /api/import not /api/spotify/import
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+  onProgress(`"${data.name}" — ${data.matched}/${data.total} tracks matched on YouTube`)
+  return {
+    id: `import-${Date.now()}`,
+    name: data.name,
+    cover: data.cover || data.tracks[0]?.albumArt || '',
+    tracks: data.tracks as Track[],
+    createdAt: new Date().toISOString(),
   }
 }
 
-// ── HELPERS ──────────────────────────────────────────────────────────────────
-async function buildPlaylistFromPairs(
+async function buildFromPairs(
   pairs: { title: string; artist: string }[],
   name: string,
   onProgress: (msg: string) => void
@@ -93,17 +113,18 @@ async function buildPlaylistFromPairs(
   const results = await Promise.allSettled(
     pairs.map(p => searchYouTube(`${p.title} ${p.artist} official audio`, 1))
   )
-  const tracks: Track[] = results.map((r, i) => {
-    if (r.status === 'fulfilled' && r.value[0]) return r.value[0]
-    return {
-      id: `fb-${i}`,
-      title: pairs[i]?.title ?? 'Unknown',
-      artist: pairs[i]?.artist ?? 'Unknown',
-      albumArt: `https://picsum.photos/seed/pl${i}/120/120`,
-      duration: 200,
-      youtubeId: undefined,
-    } satisfies Track
-  })
+  const tracks: Track[] = results.map((r, i) =>
+    r.status === 'fulfilled' && r.value[0]
+      ? r.value[0]
+      : {
+          id: `fb-${i}`,
+          title: pairs[i].title,
+          artist: pairs[i].artist,
+          albumArt: `https://picsum.photos/seed/${i}/120/120`,
+          duration: 200,
+          youtubeId: undefined,
+        } satisfies Track
+  )
   onProgress('Done!')
   return {
     id: `pl-${Date.now()}`,
@@ -114,7 +135,7 @@ async function buildPlaylistFromPairs(
   }
 }
 
-function getFallbackPairs(hint: string): { title: string; artist: string }[] {
+function getFallbackPairs(hint: string) {
   const h = hint.toLowerCase()
   if (h.includes('workout') || h.includes('gym')) return [
     { title: 'Rockstar', artist: 'Post Malone' },
@@ -124,7 +145,7 @@ function getFallbackPairs(hint: string): { title: string; artist: string }[] {
     { title: 'Blinding Lights', artist: 'The Weeknd' },
     { title: 'Industry Baby', artist: 'Lil Nas X' },
   ]
-  if (h.includes('focus') || h.includes('study') || h.includes('chill') || h.includes('lofi')) return [
+  if (h.includes('chill') || h.includes('lofi') || h.includes('focus')) return [
     { title: 'Clair de Lune', artist: 'Claude Debussy' },
     { title: 'Experience', artist: 'Ludovico Einaudi' },
     { title: 'Holocene', artist: 'Bon Iver' },
@@ -132,21 +153,13 @@ function getFallbackPairs(hint: string): { title: string; artist: string }[] {
     { title: 'Night Owl', artist: 'Galimatias' },
     { title: 'Gymnopédie No.1', artist: 'Erik Satie' },
   ]
-  if (h.includes('sad') || h.includes('heartbreak') || h.includes('melancholy')) return [
+  if (h.includes('sad') || h.includes('heartbreak')) return [
     { title: 'Someone Like You', artist: 'Adele' },
     { title: 'The Night We Met', artist: 'Lord Huron' },
     { title: 'Skinny Love', artist: 'Bon Iver' },
     { title: 'All I Want', artist: 'Kodaline' },
     { title: 'Exile', artist: 'Taylor Swift' },
     { title: 'Slow Dancing in the Dark', artist: 'Joji' },
-  ]
-  if (h.includes('party') || h.includes('dance') || h.includes('happy')) return [
-    { title: 'Levitating', artist: 'Dua Lipa' },
-    { title: 'As It Was', artist: 'Harry Styles' },
-    { title: 'Cruel Summer', artist: 'Taylor Swift' },
-    { title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars' },
-    { title: 'Shape of You', artist: 'Ed Sheeran' },
-    { title: 'Bad Guy', artist: 'Billie Eilish' },
   ]
   return [
     { title: 'Blinding Lights', artist: 'The Weeknd' },

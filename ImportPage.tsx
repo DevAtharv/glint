@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import type { Playlist, Track } from '../types'
-import { generatePlaylistFromPrompt, importPlaylistFromUrl } from '../services/groq'
-import TrackRow from '../components/TrackRow'
+import type { Playlist, Track } from './src/types/index'
+import { generatePlaylistFromPrompt, importPlaylistFromUrl } from './src/services/groq'
+import { importFromBackend, generateFromBackend, hasBackend } from './importApi'
+import TrackRow from './src/components/TrackRow'
 
 interface ImportPageProps {
   onSavePlaylist: (pl: Playlist) => void
@@ -27,44 +28,54 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
 
   const reset = () => { setLog([]); setResult(null); setSaved(false) }
 
-  const handleSpotifyImport = async () => {
-    const url = spotifyUrl.trim()
-    if (!url) { addLog('Paste a Spotify playlist URL first', 'err'); return }
-    if (!url.includes('spotify.com/playlist')) {
-      addLog('That doesn\'t look like a Spotify playlist URL', 'err')
-      return
-    }
-    if (!BACKEND) {
-      addLog('Backend not running. Start glint-backend then add VITE_BACKEND_URL=http://localhost:3001 to your .env', 'err')
-      return
-    }
-    reset()
-    setLoading(true)
-    try {
-      const pl = await importPlaylistFromUrl(url, msg => addLog(msg))
-      addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
-      setResult(pl)
-    } catch (e: unknown) {
-      addLog(e instanceof Error ? e.message : 'Import failed', 'err')
-    } finally {
-      setLoading(false)
-    }
-  }
+   const handleSpotifyImport = async () => {
+     const url = spotifyUrl.trim()
+     if (!url) { addLog('Paste a Spotify playlist URL first', 'err'); return }
+     if (!url.includes('spotify.com/playlist')) {
+       addLog('That doesn\'t look like a Spotify playlist URL', 'err')
+       return
+     }
+     reset()
+     setLoading(true)
+     try {
+       // Use backend if available, otherwise fallback to direct Groq
+       if (hasBackend()) {
+         const pl = await importFromBackend(url, msg => addLog(msg))
+         addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
+         setResult(pl)
+       } else {
+         const pl = await importPlaylistFromUrl(url, msg => addLog(msg))
+         addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
+         setResult(pl)
+       }
+     } catch (e: unknown) {
+       addLog(e instanceof Error ? e.message : 'Import failed', 'err')
+     } finally {
+       setLoading(false)
+     }
+   }
 
-  const handleGenerate = async () => {
-    const fullPrompt = prompt.trim() || moods.join(', ') + ' music'
-    reset()
-    setLoading(true)
-    try {
-      const pl = await generatePlaylistFromPrompt(fullPrompt, msg => addLog(msg))
-      addLog(`${pl.tracks.length} tracks ready`, 'ok')
-      setResult(pl)
-    } catch (e: unknown) {
-      addLog(e instanceof Error ? e.message : 'Failed', 'err')
-    } finally {
-      setLoading(false)
-    }
-  }
+   const handleGenerate = async () => {
+     const fullPrompt = prompt.trim() || moods.join(', ') + ' music'
+     reset()
+     setLoading(true)
+     try {
+       // Use backend if available, otherwise fallback to direct Groq
+       if (hasBackend()) {
+         const pl = await generateFromBackend(fullPrompt, msg => addLog(msg))
+         addLog(`${pl.tracks.length} tracks ready`, 'ok')
+         setResult(pl)
+       } else {
+         const pl = await generatePlaylistFromPrompt(fullPrompt, msg => addLog(msg))
+         addLog(`${pl.tracks.length} tracks ready`, 'ok')
+         setResult(pl)
+       }
+     } catch (e: unknown) {
+       addLog(e instanceof Error ? e.message : 'Failed', 'err')
+     } finally {
+       setLoading(false)
+     }
+   }
 
   const inp: React.CSSProperties = {
     width: '100%', background: '#141720',
