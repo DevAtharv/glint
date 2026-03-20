@@ -280,75 +280,140 @@ app.post('/api/import', async (req, res) => {
       const playlistId = spotifyPlaylistId(url)
       if (!playlistId) return res.status(400).json({ error: 'Invalid Spotify playlist URL' })
 
-      // Use Spotify API to get actual tracks
-      if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
-        return res.status(400).json({ 
-          error: 'Spotify API credentials not configured. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env' 
-        })
-      }
+      // Try Spotify API first if credentials are configured
+      if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
+        try {
+          console.log(`Trying Spotify API for playlist: ${playlistId}`)
+          
+          // Get access token
+          const tokenRes = await axios.post('https://accounts.spotify.com/api/token', 
+            'grant_type=client_credentials',
+            {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': 'Basic ' + Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64')
+              }
+            }
+          )
+          const accessToken = tokenRes.data.access_token
+          console.log('Got Spotify access token')
 
-      try {
-        console.log(`Fetching Spotify playlist: ${playlistId}`)
-        
-        // Get access token
-        const tokenRes = await axios.post('https://accounts.spotify.com/api/token', 
-          'grant_type=client_credentials',
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Authorization': 'Basic ' + Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64')
+          // Get playlist info
+          const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+            params: { fields: 'name,images,tracks.total,tracks.items(track(name,artists(name),album(name,images)))' }
+          })
+          
+          playlistName = playlistRes.data.name
+          playlistCover = playlistRes.data.images?.[0]?.url || null
+          const totalTracks = playlistRes.data.tracks.total
+          console.log(`Playlist: "${playlistName}" - ${totalTracks} tracks`)
+
+          // Get all tracks
+          rawTracks = []
+          const firstTracks = playlistRes.data.tracks.items || []
+          for (const item of firstTracks) {
+            if (item.track?.name) {
+              rawTracks.push({
+                title: item.track.name,
+                artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+              })
             }
           }
-        )
-        const accessToken = tokenRes.data.access_token
-        console.log('Got Spotify access token')
 
-        // Get playlist info
-        const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
-          headers: { 'Authorization': `Bearer ${accessToken}` },
-          params: { fields: 'name,images,tracks.total,tracks.items(track(name,artists(name),album(name,images)))' }
-        })
-        
-        playlistName = playlistRes.data.name
-        playlistCover = playlistRes.data.images?.[0]?.url || null
-        const totalTracks = playlistRes.data.tracks.total
-        console.log(`Playlist: "${playlistName}" - ${totalTracks} tracks`)
-
-        // Get all tracks (paginate if needed)
-        rawTracks = []
-        const firstTracks = playlistRes.data.tracks.items || []
-        for (const item of firstTracks) {
-          if (item.track?.name) {
-            rawTracks.push({
-              title: item.track.name,
-              artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
-            })
-          }
-        }
-
-        // Fetch remaining pages if more than 100 tracks
-        if (totalTracks > 100) {
-          for (let offset = 100; offset < totalTracks; offset += 100) {
-            const moreTracks = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-              headers: { 'Authorization': `Bearer ${accessToken}` },
-              params: { limit: 100, offset, fields: 'items(track(name,artists(name)))' }
-            })
-            for (const item of moreTracks.data.items) {
-              if (item.track?.name) {
-                rawTracks.push({
-                  title: item.track.name,
-                  artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
-                })
+          // Fetch remaining pages if more than 100 tracks
+          if (totalTracks > 100) {
+            for (let offset = 100; offset < totalTracks; offset += 100) {
+              const moreTracks = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                params: { limit: 100, offset, fields: 'items(track(name,artists(name)))' }
+              })
+              for (const item of moreTracks.data.items) {
+                if (item.track?.name) {
+                  rawTracks.push({
+                    title: item.track.name,
+                    artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+                  })
+                }
               }
             }
           }
-        }
 
-        console.log(`Got ${rawTracks.length} tracks from Spotify API`)
-      } catch (e) {
-        console.error('Spotify API error:', e.message)
+          console.log(`Got ${rawTracks.length} tracks from Spotify API`)
+        } catch (e) {
+          console.error('Spotify API failed:', e.message)
+          // Fall through to web scraping
+        }
+      }
+
+      // If API didn't work, try web scraping
+      if (rawTracks.length === 0) {
+        console.log('Trying web scraping for Spotify playlist...')
+        try {
+          const webRes = await axios.get(`https://open.spotify.com/playlist/${playlistId}`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            },
+            timeout: 10000
+          })
+
+          const html = webRes.data
+          
+          // Check if page is available
+          if (html.includes('Page not available')) {
+            return res.status(400).json({ 
+              error: 'This playlist is private or unavailable. Please make it public in Spotify first.' 
+            })
+          }
+
+          // Try to extract tracks from the HTML
+          // Spotify embeds track data in script tags as JSON
+          const scriptMatches = html.match(/<script[^>]*>([^<]*"track"[^<]*)<\/script>/gi) || []
+          for (const script of scriptMatches) {
+            try {
+              const jsonMatch = script.match(/{.*"track".*}/s)
+              if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0])
+                if (data.track?.name) {
+                  rawTracks.push({
+                    title: data.track.name,
+                    artist: data.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+                  })
+                }
+              }
+            } catch { /**/ }
+          }
+
+          // Also try to extract from Next.js data
+          const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([^<]*)<\/script>/)
+          if (nextDataMatch) {
+            try {
+              const nextData = JSON.parse(nextDataMatch[1])
+              const tracks = nextData?.props?.pageProps?.state?.data?.entity?.tracks?.items || []
+              for (const item of tracks) {
+                if (item?.track?.name) {
+                  rawTracks.push({
+                    title: item.track.name,
+                    artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+                  })
+                }
+              }
+            } catch { /**/ }
+          }
+
+          playlistName = 'Spotify Playlist'
+          console.log(`Web scraping got ${rawTracks.length} tracks`)
+        } catch (e) {
+          console.error('Web scraping failed:', e.message)
+        }
+      }
+
+      // If still no tracks, return error
+      if (rawTracks.length === 0) {
         return res.status(400).json({ 
-          error: `Spotify API error: ${e.response?.data?.error?.message || e.message}. Check your credentials or playlist URL.` 
+          error: 'Could not get tracks from this playlist. Make sure it is public and try again.' 
         })
       }
     }
