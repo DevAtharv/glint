@@ -280,54 +280,76 @@ app.post('/api/import', async (req, res) => {
       const playlistId = spotifyPlaylistId(url)
       if (!playlistId) return res.status(400).json({ error: 'Invalid Spotify playlist URL' })
 
-      // Simple check: if we can't fetch the embed, it's likely private
-      let canAccess = false
+      // Use Spotify API to get actual tracks
+      if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
+        return res.status(400).json({ 
+          error: 'Spotify API credentials not configured. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env' 
+        })
+      }
+
       try {
-        const embedCheck = await axios.get(`https://open.spotify.com/embed/playlist/${playlistId}`, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-          timeout: 10000,
-          validateStatus: () => true // Accept any status
+        console.log(`Fetching Spotify playlist: ${playlistId}`)
+        
+        // Get access token
+        const tokenRes = await axios.post('https://accounts.spotify.com/api/token', 
+          'grant_type=client_credentials',
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Authorization': 'Basic ' + Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64')
+            }
+          }
+        )
+        const accessToken = tokenRes.data.access_token
+        console.log('Got Spotify access token')
+
+        // Get playlist info
+        const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+          params: { fields: 'name,images,tracks.total,tracks.items(track(name,artists(name),album(name,images)))' }
         })
         
-        // If we get a 200 and the page doesn't contain error messages, we can access it
-        if (embedCheck.status === 200 && embedCheck.data && typeof embedCheck.data === 'string') {
-          if (!embedCheck.data.toLowerCase().includes('page not available') && 
-              !embedCheck.data.toLowerCase().includes('not available') &&
-              embedCheck.data.length > 1000) { // Real page should be large
-            canAccess = true
+        playlistName = playlistRes.data.name
+        playlistCover = playlistRes.data.images?.[0]?.url || null
+        const totalTracks = playlistRes.data.tracks.total
+        console.log(`Playlist: "${playlistName}" - ${totalTracks} tracks`)
+
+        // Get all tracks (paginate if needed)
+        rawTracks = []
+        const firstTracks = playlistRes.data.tracks.items || []
+        for (const item of firstTracks) {
+          if (item.track?.name) {
+            rawTracks.push({
+              title: item.track.name,
+              artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+            })
           }
         }
-        console.log(`Embed check: status=${embedCheck.status}, canAccess=${canAccess}, length=${embedCheck.data?.length || 0}`)
-      } catch (checkErr) {
-        console.log('Embed check failed:', checkErr.message)
-      }
 
-      if (!canAccess) {
-        console.log('Playlist appears to be private or unavailable')
-        return res.status(400).json({ 
-          error: 'This playlist is private or unavailable. Please make it public in Spotify: Open playlist → ⋯ → "Make Public", then try again.' 
-        })
-      }
-
-      try {
-        console.log(`Scraping Spotify embed for playlist: ${playlistId}`)
-        const scraped = await scrapeSpotifyEmbed(playlistId)
-        playlistName = scraped.name
-        playlistCover = scraped.cover
-        rawTracks = scraped.tracks
-        console.log(`Scraped "${playlistName}" — ${rawTracks.length} tracks from embed`)
-      } catch (e) {
-        console.error('Spotify embed scrape failed:', e.message)
-        // Fall back to AI
-        playlistName = 'Spotify Playlist'
-        if (GROQ_KEY) {
-          console.log('Falling back to AI for Spotify playlist...')
-          const urlHint = url.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') || 'popular music'
-          rawTracks = await groqGenerateTracks(`songs similar to Spotify playlist: ${urlHint}`)
-          console.log(`AI generated ${rawTracks.length} tracks`)
-        } else {
-          rawTracks = getFallback('popular music')
+        // Fetch remaining pages if more than 100 tracks
+        if (totalTracks > 100) {
+          for (let offset = 100; offset < totalTracks; offset += 100) {
+            const moreTracks = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+              headers: { 'Authorization': `Bearer ${accessToken}` },
+              params: { limit: 100, offset, fields: 'items(track(name,artists(name)))' }
+            })
+            for (const item of moreTracks.data.items) {
+              if (item.track?.name) {
+                rawTracks.push({
+                  title: item.track.name,
+                  artist: item.track.artists?.map(a => a.name).join(', ') || 'Unknown'
+                })
+              }
+            }
+          }
         }
+
+        console.log(`Got ${rawTracks.length} tracks from Spotify API`)
+      } catch (e) {
+        console.error('Spotify API error:', e.message)
+        return res.status(400).json({ 
+          error: `Spotify API error: ${e.response?.data?.error?.message || e.message}. Check your credentials or playlist URL.` 
+        })
       }
     }
 
@@ -364,16 +386,39 @@ app.post('/api/import', async (req, res) => {
       return res.status(400).json({ error: 'No tracks found in this playlist.' })
     }
 
-    // ── MATCH EACH TRACK ON YOUTUBE ───────────────────────────────────────────
-    console.log(`Matching ${rawTracks.length} tracks on YouTube...`)
-    const matchedTracks = await Promise.all(
-      rawTracks.slice(0, 50).map(t => matchTrackOnYouTube(t.title, t.artist))
-    )
+    // ── MATCH EACH TRACK ON YOUTUBE ONE BY ONE ─────────────────────────────────
+    console.log(`Matching ${rawTracks.length} tracks on YouTube one by one...`)
+    const matchedTracks = []
+    let matchCount = 0
+    
+    for (let i = 0; i < Math.min(rawTracks.length, 50); i++) {
+      const track = rawTracks[i]
+      console.log(`[${i+1}/${rawTracks.length}] Searching: "${track.title}" by ${track.artist}`)
+      
+      try {
+        const matched = await matchTrackOnYouTube(track.title, track.artist)
+        matchedTracks.push(matched)
+        if (matched.youtubeId) {
+          matchCount++
+          console.log(`  ✓ Found: ${matched.youtubeId}`)
+        } else {
+          console.log(`  ✗ No YouTube match`)
+        }
+      } catch (e) {
+        console.log(`  ✗ Error: ${e.message}`)
+        matchedTracks.push({
+          id: `${track.title}-${Date.now()}`,
+          title: track.title,
+          artist: track.artist,
+          albumArt: '',
+          duration: 0,
+          youtubeId: null
+        })
+      }
+    }
 
     const tracks = matchedTracks.filter(Boolean)
-    const found = tracks.filter(t => t.youtubeId).length
-
-    console.log(`Matched ${found}/${tracks.length} tracks on YouTube`)
+    console.log(`\nMatched ${matchCount}/${tracks.length} tracks on YouTube`)
 
     res.json({
       name: playlistName,
