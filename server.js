@@ -106,7 +106,7 @@ async function groqGenerateTracks(prompt) {
       messages: [
         {
           role: 'system',
-          content: `You are a music expert. Suggest 10 real songs matching the description.
+          content: `You are a music expert. Suggest 25 real songs matching the description.
 Return ONLY a JSON array:
 [{"title":"Song Name","artist":"Artist Name"},...]`,
         },
@@ -265,7 +265,7 @@ app.post('/api/import', async (req, res) => {
     // ── MATCH EACH TRACK ON YOUTUBE ───────────────────────────────────────────
     console.log(`Matching ${rawTracks.length} tracks on YouTube...`)
     const matchedTracks = await Promise.all(
-      rawTracks.slice(0, 30).map(t => matchTrackOnYouTube(t.title, t.artist))
+      rawTracks.slice(0, 50).map(t => matchTrackOnYouTube(t.title, t.artist))
     )
 
     const tracks = matchedTracks.filter(Boolean)
@@ -310,7 +310,7 @@ app.post('/api/generate', async (req, res) => {
     }
 
     const tracks = await Promise.all(
-      rawTracks.slice(0, 10).map(t => matchTrackOnYouTube(t.title, t.artist))
+      rawTracks.slice(0, 25).map(t => matchTrackOnYouTube(t.title, t.artist))
     )
 
     res.json({

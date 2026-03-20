@@ -1,4 +1,4 @@
-import type { Track, Playlist } from '../types'
+import type { Track, Playlist } from './src/types/index'
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || 'http://localhost:3001'
 

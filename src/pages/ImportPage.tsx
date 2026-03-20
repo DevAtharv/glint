@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { Playlist, Track } from '../types'
 import { generatePlaylistFromPrompt, importPlaylistFromUrl } from '../services/groq'
+import { importFromBackend, generateFromBackend, hasBackend } from '../../importApi'
 import TrackRow from '../components/TrackRow'
 
 interface ImportPageProps {
@@ -25,6 +26,7 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
 
   const hasGroqKey = !!(import.meta.env.VITE_GROQ_API_KEY?.trim())
   const hasYtKey = !!(import.meta.env.VITE_YOUTUBE_API_KEY?.trim())
+  const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
 
   const addStatus = (msg: string, type: 'info' | 'ok' | 'err' = 'info') =>
     setStatusLines(prev => [...prev, { msg, type }])
@@ -37,7 +39,13 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
     setLoading(true)
     try {
       addStatus(`Starting: "${fullPrompt}"`, 'info')
-      const pl = await generatePlaylistFromPrompt(fullPrompt, msg => addStatus(msg, 'info'))
+      let pl: Playlist
+      if (hasBackend()) {
+        addStatus('Using backend for full AI generation...', 'info')
+        pl = await generateFromBackend(fullPrompt, msg => addStatus(msg, 'info'))
+      } else {
+        pl = await generatePlaylistFromPrompt(fullPrompt, msg => addStatus(msg, 'info'))
+      }
       if (pl.tracks.length === 0) {
         addStatus('No tracks found — try a different description', 'err')
       } else {
@@ -59,7 +67,13 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
     setLoading(true)
     try {
       addStatus(`Importing from: ${url.slice(0, 50)}...`, 'info')
-      const pl = await importPlaylistFromUrl(url, msg => addStatus(msg, 'info'))
+      let pl: Playlist
+      if (hasBackend()) {
+        addStatus('Using backend for full playlist import...', 'info')
+        pl = await importFromBackend(url, msg => addStatus(msg, 'info'))
+      } else {
+        pl = await importPlaylistFromUrl(url, msg => addStatus(msg, 'info'))
+      }
       if (pl.tracks.length === 0) {
         addStatus('No tracks found — try a different URL', 'err')
       } else {
@@ -107,6 +121,12 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
 
       {/* Config status */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: BACKEND ? 'rgba(45,216,129,.08)' : 'rgba(245,166,35,.08)', border: `1px solid ${BACKEND ? 'rgba(45,216,129,.2)' : 'rgba(245,166,35,.2)'}` }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: BACKEND ? '#2DD881' : '#f5a623' }} />
+          <span style={{ fontSize: 11, fontWeight: 600, color: BACKEND ? '#2DD881' : '#f5a623' }}>
+            Backend: {BACKEND ? `Connected (${BACKEND})` : 'Not set — using direct API'}
+          </span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: hasGroqKey ? 'rgba(45,216,129,.08)' : 'rgba(255,77,109,.08)', border: `1px solid ${hasGroqKey ? 'rgba(45,216,129,.2)' : 'rgba(255,77,109,.2)'}` }}>
           <div style={{ width: 7, height: 7, borderRadius: '50%', background: hasGroqKey ? '#2DD881' : '#FF4D6D' }} />
           <span style={{ fontSize: 11, fontWeight: 600, color: hasGroqKey ? '#2DD881' : '#FF4D6D' }}>

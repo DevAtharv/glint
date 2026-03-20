@@ -59,7 +59,7 @@ function parseTracklist(text: string): { title: string; artist: string }[] {
       if (title && artist) results.push({ title, artist })
     }
   }
-  return results.slice(0, 8)
+  return results.slice(0, 25)
 }
 
 // ── GENERATE FROM PROMPT ────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export async function generatePlaylistFromPrompt(
       const response = await groqChat([
         {
           role: 'system',
-          content: `You are a music expert. Suggest 8 real songs matching the user's description.
+          content: `You are a music expert. Suggest 20 real songs matching the user's description.
 Reply with ONLY a JSON array, no markdown, no explanation:
 [{"title":"Song Name","artist":"Artist Name"},{"title":"...","artist":"..."}]`,
         },
@@ -165,7 +165,7 @@ export async function importPlaylistFromUrl(
         {
           role: 'system',
           content: `You help users migrate playlists between music platforms.
-The user gives you a ${platform} URL. Based on any context in the URL (artist name, playlist name, genre), suggest 8 real songs that would fit this playlist.
+The user gives you a ${platform} URL. Based on any context in the URL (artist name, playlist name, genre), suggest 20 real songs that would fit this playlist.
 Reply ONLY with a JSON array, no markdown:
 [{"title":"Song Name","artist":"Artist Name"},...]`,
         },
