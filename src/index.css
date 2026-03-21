@@ -2,6 +2,9 @@
 .link {
   @apply flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition;
 }
+body {
+  @apply bg-[#0a0a0a] text-white;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
