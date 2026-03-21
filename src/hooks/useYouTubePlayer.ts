@@ -8,11 +8,11 @@ interface Props {
   onDuration: (secs: number) => void
   onEnded: () => void
   seekTo?: number | null
+  containerId: string // NEW: Tell the hook where to render the video
 }
 
-export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDuration, onEnded, seekTo }: Props) {
+export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDuration, onEnded, seekTo, containerId }: Props) {
   const playerRef = useRef<any>(null)
-  const prevVideoId = useRef<string | null>(null)
   const timerRef = useRef<any>(null)
   const readyRef = useRef(false)
 
@@ -27,10 +27,6 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     if (!document.getElementById('youtube-iframe-api')) {
       document.head.appendChild(tag)
     }
-
-    ;(window as any).onYouTubeIframeAPIReady = () => {
-      console.log('YouTube API ready')
-    }
   }, [])
 
   // Create/update player when video changes
@@ -43,49 +39,35 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
         return
       }
 
-      // Destroy existing player
+      // Destroy existing player if it exists
       if (playerRef.current) {
         try { playerRef.current.destroy() } catch {}
       }
 
-      // Remove old container
-      const old = document.getElementById('yt-music-player')
-      if (old) old.remove()
-
-      // Create container
-      const container = document.createElement('div')
-      container.id = 'yt-music-player'
-      container.style.cssText = `
-        position: fixed;
-        bottom: 90px;
-        right: 20px;
-        width: 300px;
-        height: 169px;
-        z-index: 9999;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-        background: #000;
-      `
-      document.body.appendChild(container)
+      // Ensure the container exists in the DOM before trying to mount
+      const container = document.getElementById(containerId)
+      if (!container) {
+        setTimeout(waitForAPI, 100)
+        return
+      }
 
       readyRef.current = false
 
-      playerRef.current = new (window as any).YT.Player('yt-music-player', {
+      playerRef.current = new (window as any).YT.Player(containerId, {
         videoId: videoId,
-        width: 300,
-        height: 169,
+        width: '100%',
+        height: '100%',
         playerVars: {
           autoplay: 1,
-          controls: 1,
+          controls: 0, // Hide YouTube controls, we are building our own
           modestbranding: 1,
           rel: 0,
           fs: 0,
           playsinline: 1,
+          disablekb: 1 // Disable keyboard controls on the iframe itself
         },
         events: {
           onReady: (e: any) => {
-            console.log('Player ready, playing:', videoId)
             readyRef.current = true
             e.target.setVolume(volume)
             e.target.playVideo()
@@ -107,17 +89,6 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
               if (timerRef.current) clearInterval(timerRef.current)
               onEnded()
             }
-            if (e.data === 1) {
-              timerRef.current = setInterval(() => {
-                try {
-                  const t = e.target.getCurrentTime()
-                  if (typeof t === 'number') onProgress(Math.floor(t))
-                } catch {}
-              }, 500)
-            }
-            if (e.data === 2) {
-              if (timerRef.current) clearInterval(timerRef.current)
-            }
           },
           onError: () => {
             console.error('YouTube player error')
@@ -132,7 +103,7 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [videoId])
+  }, [videoId, containerId]) // Re-run if container ID changes
 
   // Handle play/pause
   useEffect(() => {
@@ -162,15 +133,13 @@ export function useYouTubePlayer({ videoId, isPlaying, volume, onProgress, onDur
     } catch {}
   }, [seekTo])
 
-  // Cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
       if (playerRef.current) {
         try { playerRef.current.destroy() } catch {}
       }
-      const el = document.getElementById('yt-music-player')
-      if (el) el.remove()
     }
   }, [])
 }
