@@ -279,140 +279,142 @@ export default function PlayerBar({
       )}
 
       {isFullscreen && canPlay && (
-        <div className="fixed inset-0 z-[999] flex flex-col bg-black text-white">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${track.albumArt})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(80px)',
-              opacity: 0.25,
-            }}
+  <div className="fixed inset-0 z-[999] bg-black text-white flex flex-col">
+
+    {/* Background blur */}
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundImage: `url(${track.albumArt})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(100px)',
+        opacity: 0.25,
+      }}
+    />
+    <div className="absolute inset-0 bg-black/70" />
+
+    {/* Top bar */}
+    <div className="relative z-10 flex items-center justify-between px-6 py-4">
+      <div>
+        <p className="text-xs uppercase text-gray-400 tracking-widest">
+          Now Playing
+        </p>
+        <p className="text-sm text-white/80">{track.artist}</p>
+      </div>
+
+      <button
+        onClick={() => setIsFullscreen(false)}
+        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-sm"
+      >
+        Close
+      </button>
+    </div>
+
+    {/* MAIN CONTENT */}
+    <div className="relative z-10 flex flex-1 items-center justify-center px-4">
+
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
+
+        {/* 🎬 VIDEO */}
+        <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+          <iframe
+            src={youtubeUrl}
+            title={track.title}
+            className="w-full h-full"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
+        </div>
 
-          <div className="relative z-10 flex h-full flex-col">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-xs uppercase text-gray-400 tracking-[0.16em]">Now Playing</p>
-                <p className="mt-1 text-sm text-white/90">{track.artist}</p>
-              </div>
+        {/* 🎵 CONTROLS */}
+        <div className="flex flex-col justify-center">
 
-              <button
-                onClick={() => setIsFullscreen(false)}
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
-              >
-                Close
-              </button>
+          <h2 className="text-3xl font-bold">{track.title}</h2>
+          <p className="text-gray-400 mt-1">{track.artist}</p>
+
+          {/* Progress */}
+          <div className="mt-6">
+            <div
+              onClick={handleProgressClick}
+              className="h-2 bg-white/10 rounded-full cursor-pointer"
+            >
+              <div
+                className="h-2 bg-[#1DB954] rounded-full"
+                style={{ width: `${progress}%` }}
+              />
             </div>
 
-            <div className="flex flex-1 flex-col items-center justify-center px-4 pb-6 sm:px-6">
-              <div className="w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-black/30 shadow-2xl backdrop-blur-md">
-                <div className="aspect-video w-full">
-                  <iframe
-                    src={youtubeUrl}
-                    title={track.title}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 text-center">
-                <h2 className="text-2xl font-bold sm:text-3xl">{track.title}</h2>
-                <p className="mt-2 text-sm text-gray-400">{track.artist}</p>
-              </div>
-
-              <div className="mt-8 w-full max-w-4xl rounded-3xl border border-white/10 bg-black/30 p-4 backdrop-blur-md sm:p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-                  <div className="flex-1">
-                    <div
-                      onClick={handleProgressClick}
-                      className="h-2 cursor-pointer overflow-hidden rounded-full bg-white/10"
-                    >
-                      <div
-                        className="h-2 rounded-full bg-[#1DB954]"
-                        style={{ width: `${Math.min(100, progress)}%` }}
-                      />
-                    </div>
-
-                    <div className="mt-2 flex justify-between text-xs text-gray-400">
-                      <span>{formatTime(currentSecs)}</span>
-                      <span>{formatTime(track.duration || 0)}</span>
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-center gap-5">
-                      <button
-                        onClick={onPrev}
-                        className="text-2xl text-gray-300 transition hover:text-white"
-                      >
-                        ⏮
-                      </button>
-
-                      <button
-                        onClick={onTogglePlay}
-                        className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1DB954] text-2xl text-black transition hover:scale-105"
-                      >
-                        {isPlaying ? '⏸' : '▶'}
-                      </button>
-
-                      <button
-                        onClick={onNext}
-                        className="text-2xl text-gray-300 transition hover:text-white"
-                      >
-                        ⏭
-                      </button>
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
-                      <button
-                        onClick={onShuffle}
-                        className={`rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10 ${
-                          shuffle ? 'text-[#1DB954]' : 'text-white'
-                        }`}
-                      >
-                        Shuffle
-                      </button>
-
-                      <button
-                        onClick={onRepeat}
-                        className={`rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10 ${
-                          repeat ? 'text-[#1DB954]' : 'text-white'
-                        }`}
-                      >
-                        Repeat
-                      </button>
-
-                      <button
-                        onClick={onLike}
-                        className={`rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10 ${
-                          liked ? 'text-[#1DB954]' : 'text-white'
-                        }`}
-                      >
-                        {liked ? 'Liked ♥' : 'Like ♡'}
-                      </button>
-                    </div>
-
-                    <div className="mt-6 flex items-center gap-3">
-                      <span className="text-xs text-gray-400">Volume</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={volume}
-                        onChange={e => onVolumeChange(Number(e.target.value))}
-                        className="w-full accent-[#1DB954]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>{formatTime(currentSecs)}</span>
+              <span>{formatTime(track.duration || 0)}</span>
             </div>
           </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-6 mt-6">
+
+            <button onClick={onPrev} className="text-xl opacity-70 hover:opacity-100">
+              ⏮
+            </button>
+
+            <button
+              onClick={onTogglePlay}
+              className="w-16 h-16 bg-[#1DB954] rounded-full flex items-center justify-center text-black text-2xl hover:scale-105"
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+
+            <button onClick={onNext} className="text-xl opacity-70 hover:opacity-100">
+              ⏭
+            </button>
+          </div>
+
+          {/* Extra buttons */}
+          <div className="flex gap-3 mt-6 flex-wrap">
+
+            <button
+              onClick={onShuffle}
+              className={`px-4 py-2 rounded-full border border-white/10 ${
+                shuffle ? 'text-[#1DB954]' : 'text-white'
+              }`}
+            >
+              Shuffle
+            </button>
+
+            <button
+              onClick={onRepeat}
+              className={`px-4 py-2 rounded-full border border-white/10 ${
+                repeat ? 'text-[#1DB954]' : 'text-white'
+              }`}
+            >
+              Repeat
+            </button>
+
+            <button
+              onClick={onLike}
+              className={`px-4 py-2 rounded-full border border-white/10 ${
+                liked ? 'text-[#1DB954]' : 'text-white'
+              }`}
+            >
+              {liked ? 'Liked ♥' : 'Like ♡'}
+            </button>
+          </div>
+
+          {/* Volume */}
+          <div className="mt-6 flex items-center gap-3">
+            <span className="text-sm text-gray-400">Volume</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              onChange={e => onVolumeChange(Number(e.target.value))}
+              className="flex-1 accent-[#1DB954]"
+            />
+          </div>
         </div>
-      )}
-    </>
-  )
-}
+      </div>
+    </div>
+  </div>
+)}
