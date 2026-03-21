@@ -25,8 +25,6 @@ const RECOMMENDED: Track[] = [
   { id: 'TUVcZfQe-Kw', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/mqdefault.jpg', duration: 167, youtubeId: 'TUVcZfQe-Kw', plays: '1.8B' },
   { id: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234, youtubeId: 'JGwWNGJdvx8', plays: '6B' },
   { id: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270, youtubeId: 'OPf0YbXqDm0', plays: '4.9B' },
-  { id: 'kXYiU_JCYtU', title: 'Numb', artist: 'Linkin Park', albumArt: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', duration: 185, youtubeId: 'kXYiU_JCYtU', plays: '1.8B' },
-  { id: 'pRpeEdMmmQ0', title: 'Shallow', artist: 'Lady Gaga & Bradley Cooper', albumArt: 'https://i.ytimg.com/vi/pRpeEdMmmQ0/mqdefault.jpg', duration: 216, youtubeId: 'pRpeEdMmmQ0', plays: '940M' },
 ]
 
 export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
@@ -42,36 +40,39 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
     setYtLoading(true)
     searchYouTube('trending music 2024', 6)
       .then(tracks => setYtTracks(tracks))
+      .catch(console.error)
       .finally(() => setYtLoading(false))
   }, [])
 
   const recommendedTracks = ytTracks.length > 0 ? ytTracks : RECOMMENDED
 
   return (
-    <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-      <div className="mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#1a1630_0%,#0f1020_50%,#12182e_100%)] p-5 sm:p-7 lg:p-10">
-        <div className="relative overflow-hidden">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(108,99,255,0.25)_0%,transparent_70%)] sm:h-56 sm:w-56" />
-
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8B85FF] sm:text-xs">
+    <div className="px-4 pb-12 pt-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      
+      {/* Hero Section */}
+      <div className="relative mb-12 overflow-hidden rounded-[32px] border border-white/5 bg-gradient-to-br from-[#1a1630] via-[#0f1020] to-[#12182e] p-8 sm:p-12 shadow-2xl">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-indigo-500/20 blur-[80px]" />
+        
+        <div className="relative z-10">
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-indigo-400">
             Welcome back, {firstName}
           </p>
 
-          <h1 className="mb-3 max-w-2xl font-serif text-4xl leading-[1.05] text-[#EEF0FF] sm:text-5xl lg:text-6xl">
+          <h1 className="mb-4 max-w-2xl font-serif text-4xl font-medium leading-tight text-white sm:text-5xl lg:text-6xl">
             Your music,<br />
-            <em className="italic text-[#8B85FF]">your way.</em>
+            <span className="italic text-indigo-400">your way.</span>
           </h1>
 
-          <p className="mb-5 max-w-md text-sm leading-6 text-[#A0A3B1] sm:text-base">
+          <p className="mb-8 max-w-md text-base text-zinc-400">
             Ad-free listening. AI-powered playlists. Import from Spotify and more.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <button
               onClick={() => onNavigate('import')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-600"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-500 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-indigo-400 active:scale-95 shadow-lg shadow-indigo-500/25"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               Import Playlist
@@ -79,7 +80,7 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
 
             <button
               onClick={() => onNavigate('search')}
-              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-transparent px-5 py-3 text-sm font-semibold text-[#A0A3B1] transition hover:bg-white/5 hover:text-[#EEF0FF]"
+              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-zinc-300 backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white active:scale-95"
             >
               Browse Music
             </button>
@@ -87,43 +88,77 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
         </div>
       </div>
 
-      <div className="mb-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-serif text-xl text-[#EEF0FF] sm:text-2xl">Featured</h2>
-        </div>
+      {/* Featured Section */}
+      <div className="mb-12">
+        <h2 className="mb-6 font-serif text-2xl font-medium text-white">Featured</h2>
 
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {FEATURED.map(track => (
-            <div
-              key={track.id}
-              onClick={() => onPlay(track, FEATURED)}
-              className={`w-[160px] shrink-0 cursor-pointer rounded-2xl border p-3 transition ${
-                currentTrack?.id === track.id
-                  ? 'border-indigo-500/30 bg-[rgba(108,99,255,0.12)]'
-                  : 'border-white/10 bg-[#11131A] hover:bg-[#171923]'
-              }`}
-            >
-              <img
-                src={track.albumArt}
-                alt={track.title}
-                className="mb-3 aspect-video w-full rounded-xl object-cover"
-              />
-              <p className="mb-1 truncate text-sm font-semibold text-[#EEF0FF]">{track.title}</p>
-              <p className="truncate text-xs text-[#A0A3B1]">{track.artist}</p>
-            </div>
-          ))}
+        {/* Hidden scrollbar utilities for a cleaner look */}
+        <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {FEATURED.map(track => {
+            const isPlaying = currentTrack?.id === track.id
+            return (
+              <div
+                key={track.id}
+                onClick={() => onPlay(track, FEATURED)}
+                className={`group relative w-[160px] sm:w-[180px] shrink-0 snap-start cursor-pointer rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 ${
+                  isPlaying
+                    ? 'bg-indigo-500/10 border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                    : 'bg-[#11131A] border border-white/5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-black/50'
+                }`}
+              >
+                <div className="relative mb-4 overflow-hidden rounded-xl bg-zinc-800 shadow-md">
+                  <img
+                    src={track.albumArt}
+                    alt={track.title}
+                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  
+                  {/* Play Overlay */}
+                  <div className={`absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
+                      {isPlaying ? (
+                        <div className="flex gap-1">
+                          <div className="w-1 h-3 bg-white animate-pulse rounded-full" />
+                          <div className="w-1 h-3 bg-white animate-pulse rounded-full delay-75" />
+                          <div className="w-1 h-3 bg-white animate-pulse rounded-full delay-150" />
+                        </div>
+                      ) : (
+                        <svg className="ml-1 h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <p className={`mb-1 truncate text-base font-semibold transition-colors ${isPlaying ? 'text-indigo-400' : 'text-zinc-100 group-hover:text-white'}`}>
+                  {track.title}
+                </p>
+                <p className="truncate text-sm text-zinc-400 group-hover:text-zinc-300">
+                  {track.artist}
+                </p>
+              </div>
+            )
+          })}
         </div>
       </div>
 
+      {/* Recommended/Trending Section */}
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-serif text-xl text-[#EEF0FF] sm:text-2xl">
+        <div className="mb-6 flex items-end justify-between">
+          <h2 className="font-serif text-2xl font-medium text-white">
             {ytTracks.length > 0 ? 'Trending Now' : 'Recommended'}
           </h2>
-          {ytLoading && <span className="text-xs text-[#6B6F85]">Loading from YouTube...</span>}
+          
+          {ytLoading && (
+            <div className="flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-zinc-400 border border-white/5">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
+              Loading...
+            </div>
+          )}
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-1">
           {recommendedTracks.map((track, i) => (
             <TrackRow
               key={track.id}
@@ -135,6 +170,7 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
           ))}
         </div>
       </div>
+      
     </div>
   )
 }
