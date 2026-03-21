@@ -7,7 +7,7 @@ import SearchPage from "./pages/SearchPage"
 import LibraryPage from "./pages/LibraryPage"
 import ImportPage from "./pages/ImportPage"
 import AuthPage from "./pages/AuthPage"
-
+<div className="flex h-screen bg-gradient-to-b from-[#0a0a0a] to-black text-white">
 export default function App() {
   return (
     <BrowserRouter>
