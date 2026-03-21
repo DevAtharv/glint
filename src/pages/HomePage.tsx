@@ -28,13 +28,18 @@ const FEATURED: Track[] = [
   { id: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270, youtubeId: 'OPf0YbXqDm0' },
 ]
 
+const shuffleArray = (array: Track[]) => [...array].sort(() => Math.random() - 0.5)
+
 export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
   const { user } = useAuth()
   const [ytTracks, setYtTracks] = useState<Track[]>([])
   const [ytLoading, setYtLoading] = useState(false)
   
-  const firstName = (user?.name ?? 'there').split(' ')[0]
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'
+
+  // Re-shuffle on every mount
+  const randomQuickPicks = useMemo(() => shuffleArray(QUICK_PICKS), [])
+  const randomFeatured = useMemo(() => shuffleArray(FEATURED), [])
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
@@ -54,83 +59,83 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
       .finally(() => setYtLoading(false))
   }, [])
 
-  const recommendedTracks = ytTracks.length > 0 ? ytTracks : FEATURED
+  const recommendedTracks = ytTracks.length > 0 ? ytTracks : randomFeatured
 
   return (
-    <div className="relative min-h-screen bg-[#050505] font-sans text-white selection:bg-[#1ed760]/30 selection:text-white pb-24">
+    <div className="relative min-h-screen bg-black font-sans text-white selection:bg-[#1ed760]/30 selection:text-white pb-32 overflow-x-hidden">
       
-      {/* 🌌 AMBIENT ANIMATED BACKGROUND GLOWS */}
-      <div className="pointer-events-none absolute left-0 top-0 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1ed760]/10 blur-[120px]" />
-      <div className="pointer-events-none absolute right-0 top-[20%] h-[600px] w-[600px] translate-x-1/3 rounded-full bg-indigo-500/10 blur-[150px]" />
+      {/* 🌌 BREATHING AMBIENT BACKGROUND GLOWS */}
+      <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-[#1ed760]/10 blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="pointer-events-none absolute right-[-5%] top-[15%] h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[150px] animate-pulse" style={{ animationDuration: '12s' }} />
 
       <div className="relative z-10 mx-auto max-w-[1600px] px-4 pt-8 sm:px-6 lg:px-8">
         
         {/* ✨ HYPER-PREMIUM HEADER */}
-        <div className="mb-10 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
-          <h1 className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-4xl font-extrabold tracking-tighter text-transparent sm:text-5xl drop-shadow-sm">
+        <div className="mb-12 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-1000">
+          <h1 className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-4xl sm:text-6xl font-extrabold tracking-tighter text-transparent drop-shadow-sm">
             {greeting}
           </h1>
           
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => onNavigate('search')} 
-              className="group relative hidden sm:flex items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-all hover:border-white/30 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-95"
+              className="group hidden sm:flex items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] px-7 py-3 text-sm font-bold text-white backdrop-blur-2xl transition-all hover:border-white/20 hover:bg-white/[0.05] hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] active:scale-95"
             >
               Browse
             </button>
             <button 
               onClick={() => onNavigate('import')} 
-              className="group relative hidden sm:flex items-center justify-center overflow-hidden rounded-full bg-[#1ed760] px-6 py-2.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-[#3be477] hover:shadow-[0_0_30px_rgba(30,215,96,0.4)] active:scale-95"
+              className="group hidden sm:flex items-center justify-center rounded-full bg-[#1ed760] px-7 py-3 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-[#3be477] hover:shadow-[0_0_40px_rgba(30,215,96,0.3)] active:scale-95"
             >
-              Import
+              Import URL
             </button>
             <button 
               onClick={() => onNavigate('profile')}
-              className="relative ml-2 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-[#181818] to-[#0a0a0a] text-sm font-bold text-white shadow-xl backdrop-blur-xl transition-all hover:scale-105 hover:border-[#1ed760]/50 hover:shadow-[0_0_25px_rgba(30,215,96,0.2)] active:scale-95"
+              className="relative ml-2 flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-gradient-to-br from-[#181818] to-black text-sm font-bold text-white shadow-2xl backdrop-blur-3xl transition-all hover:scale-105 hover:border-[#1ed760]/40 hover:shadow-[0_0_30px_rgba(30,215,96,0.15)] active:scale-95"
             >
               {initials}
             </button>
           </div>
         </div>
 
-        {/* 🎛️ GLASSMORPHISM QUICK PICKS */}
-        <div className="mb-14 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 fill-mode-both">
-          {QUICK_PICKS.map(track => {
+        {/* 🎛️ FROSTED GLASS QUICK PICKS */}
+        <div className="mb-16 grid grid-cols-2 gap-4 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150 fill-mode-both">
+          {randomQuickPicks.map(track => {
             const isPlaying = currentTrack?.id === track.id
             return (
               <div
                 key={`quick-${track.id}`}
-                onClick={() => onPlay(track, QUICK_PICKS)}
-                className="group relative flex h-16 sm:h-20 cursor-pointer items-center overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-xl transition-all duration-500 hover:border-white/10 hover:bg-white/[0.06] hover:shadow-2xl hover:shadow-[#1ed760]/5"
+                onClick={() => onPlay(track, randomQuickPicks)}
+                className="group relative flex h-20 cursor-pointer items-center overflow-hidden rounded-2xl border border-white/[0.04] bg-white/[0.01] backdrop-blur-3xl transition-all duration-500 hover:border-white/[0.1] hover:bg-white/[0.04] hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.5)]"
               >
-                {/* Inner Light Sweep Effect */}
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+                {/* Specular Highlight Sweep */}
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
 
-                <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden">
-                  <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:opacity-0 z-10" />
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden shadow-[8px_0_20px_rgba(0,0,0,0.6)]">
+                  <div className="absolute inset-0 bg-black/30 transition-opacity duration-500 group-hover:opacity-0 z-10" />
                   <img
                     src={track.albumArt}
                     alt={track.title}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
                   />
                 </div>
                 
-                <div className="flex flex-1 items-center justify-between px-4 z-10">
-                  <p className={`truncate text-sm sm:text-base font-bold tracking-tight transition-colors duration-300 ${isPlaying ? 'text-[#1ed760]' : 'text-white/90 group-hover:text-white'}`}>
+                <div className="flex flex-1 items-center justify-between px-5 z-10">
+                  <p className={`truncate text-sm sm:text-base font-bold tracking-tight transition-colors duration-300 ${isPlaying ? 'text-[#1ed760]' : 'text-white/80 group-hover:text-white'}`}>
                     {track.title}
                   </p>
                   
-                  {/* Neon Play Button */}
-                  <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_0_20px_rgba(30,215,96,0.4)] transition-all duration-300 ease-out hover:scale-110 hover:bg-[#3be477] hover:shadow-[0_0_30px_rgba(30,215,96,0.6)] ${
+                  {/* Floating Neon Play Button */}
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_0_30px_rgba(30,215,96,0.3)] transition-all duration-400 ease-out hover:scale-110 hover:bg-[#3be477] hover:shadow-[0_0_40px_rgba(30,215,96,0.6)] ${
                     isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
                   }`}>
                     {isPlaying ? (
                       <div className="flex gap-[3px] items-center justify-center">
-                        <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full" />
-                        <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full delay-75" />
+                        <div className="w-1 h-3.5 bg-black animate-pulse rounded-full" />
+                        <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-75" />
                       </div>
                     ) : (
-                      <svg className="ml-1 h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      <svg className="ml-1 h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     )}
                   </div>
                 </div>
@@ -139,46 +144,46 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
           })}
         </div>
 
-        {/* 🎧 FADE-MASKED HORIZONTAL CAROUSEL */}
-        <div className="mb-14 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 fill-mode-both">
-          <h2 className="mb-6 text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
+        {/* 🎧 THEATRICAL CAROUSEL */}
+        <div className="mb-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both">
+          <h2 className="mb-6 text-3xl font-extrabold tracking-tighter text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
             Made For You
           </h2>
 
           <div className="relative">
-            {/* Edge Fade Masks for a seamless infinite scroll look */}
-            <div className="absolute left-0 top-0 z-10 h-full w-8 bg-gradient-to-r from-[#050505] to-transparent pointer-events-none" />
-            <div className="absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none" />
+            {/* Elegant Edge Fades */}
+            <div className="absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-black via-black/80 to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-black via-black/80 to-transparent pointer-events-none" />
 
-            <div className="flex gap-5 overflow-x-auto pb-8 pt-2 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {FEATURED.map(track => {
+            <div className="flex gap-6 overflow-x-auto pb-8 pt-2 snap-x snap-mandatory px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {randomFeatured.map(track => {
                 const isPlaying = currentTrack?.id === track.id
                 return (
                   <div
                     key={`featured-${track.id}`}
-                    onClick={() => onPlay(track, FEATURED)}
-                    className={`group relative w-[160px] sm:w-[190px] shrink-0 snap-start cursor-pointer rounded-2xl p-4 transition-all duration-500 hover:-translate-y-2 ${
-                      isPlaying ? 'bg-white/10 border border-white/20' : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.08] hover:border-white/10 hover:shadow-2xl hover:shadow-white/5'
+                    onClick={() => onPlay(track, randomFeatured)}
+                    className={`group relative w-[180px] sm:w-[210px] shrink-0 snap-start cursor-pointer rounded-2xl p-5 transition-all duration-500 hover:-translate-y-2 ${
+                      isPlaying ? 'bg-white/[0.08] border border-white/20 shadow-2xl shadow-white/5' : 'bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.08] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)]'
                     }`}
                   >
-                    <div className="relative mb-5 overflow-hidden rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.6)]">
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                    <div className="relative mb-5 overflow-hidden rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] ring-1 ring-white/10">
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-transparent transition-colors duration-700 z-10" />
                       <img
                         src={track.albumArt}
                         alt={track.title}
-                        className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                        className="aspect-square w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
                       />
                       
                       {/* Premium Floating Overlay */}
                       <div className={`absolute bottom-3 right-3 z-20 flex items-center justify-center transition-all duration-400 ease-out ${
-                        isPlaying ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-90 group-hover:translate-y-0 group-hover:opacity-100 group-hover:scale-100'
+                        isPlaying ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-6 opacity-0 scale-90 group-hover:translate-y-0 group-hover:opacity-100 group-hover:scale-100'
                       }`}>
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_10px_20px_rgba(0,0,0,0.5)] hover:bg-[#3be477] hover:scale-110 transition-all">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_10px_30px_rgba(30,215,96,0.5)] hover:bg-[#3be477] hover:scale-110 transition-all">
                           {isPlaying ? (
                             <div className="flex gap-1 items-center justify-center h-full">
-                              <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
-                              <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-75" />
-                              <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-150" />
+                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full" />
+                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-75" />
+                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-150" />
                             </div>
                           ) : (
                             <svg className="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -187,10 +192,10 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
                       </div>
                     </div>
 
-                    <p className={`mb-1 truncate text-base font-extrabold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                    <p className={`mb-1 truncate text-lg font-bold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
                       {track.title}
                     </p>
-                    <p className="truncate text-sm font-medium text-[#888888] group-hover:text-[#b3b3b3] transition-colors">
+                    <p className="truncate text-sm font-medium text-[#777777] group-hover:text-[#b3b3b3] transition-colors">
                       {track.artist}
                     </p>
                   </div>
@@ -200,24 +205,24 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
           </div>
         </div>
 
-        {/* 📊 ELEGANT TRENDING LIST */}
-        <div className="animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 fill-mode-both">
+        {/* 📊 SLEEK TRENDING LIST */}
+        <div className="animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500 fill-mode-both">
           <div className="mb-6 flex items-end justify-between">
-            <h2 className="text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
-              {ytTracks.length > 0 ? 'Trending Worldwide' : 'Popular Tracks'}
+            <h2 className="text-3xl font-extrabold tracking-tighter text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
+              {ytTracks.length > 0 ? 'Trending Worldwide' : 'Global Top 50'}
             </h2>
             
             {ytLoading && (
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#1ed760] shadow-[0_0_15px_rgba(30,215,96,0.1)]">
-                <div className="h-1.5 w-1.5 animate-ping rounded-full bg-[#1ed760]" />
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-2xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#1ed760] shadow-[0_0_20px_rgba(30,215,96,0.15)]">
+                <div className="h-2 w-2 animate-ping rounded-full bg-[#1ed760]" />
                 Live Sync
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-2xl p-2 sm:p-4">
-            <div className="flex px-4 py-3 border-b border-white/5 mb-2 text-[11px] uppercase text-[#666666] font-extrabold tracking-widest">
-              <div className="w-10 text-center">#</div>
+          <div className="rounded-3xl border border-white/[0.04] bg-white/[0.01] backdrop-blur-3xl p-3 sm:p-5 shadow-2xl shadow-black/50">
+            <div className="flex px-5 py-3 border-b border-white/[0.05] mb-2 text-[11px] uppercase text-[#666666] font-extrabold tracking-widest">
+              <div className="w-12 text-center">#</div>
               <div className="flex-1">Title</div>
               <div className="w-16 text-right">Time</div>
             </div>
