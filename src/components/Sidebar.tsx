@@ -124,6 +124,13 @@ export default function Sidebar({ currentPage, onNavigate, playlists, onPlayPlay
           </div>
         </div>
       )}
+
+      {/* Credits */}
+      <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,.06)' }}>
+        <p style={{ fontSize: 9, color: 'rgba(255,255,255,.25)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Made with ♡ by</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#EEF0FF' }}>Atharv</p>
+        <a href="https://atharvagarwal.in" target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: '#6C63FF', textDecoration: 'none', display: 'inline-block', marginTop: 4 }}>atharvagarwal.in</a>
+      </div>
     </aside>
   )
 }
