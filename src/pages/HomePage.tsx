@@ -1,321 +1,243 @@
-import React, { useState } from 'react'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import type { Track, Playlist } from '../types'
+import React, { useState, useEffect, useMemo } from 'react'
+import type { Track } from '../types'
+import { searchYouTube } from '../services/youtube'
+import TrackRow from '../components/TrackRow'
+import { useAuth } from '../hooks/useAuth'
 
-interface EditPlaylistPageProps {
-  playlist: Playlist
-  onSave: (playlist: Playlist) => void
-  onBack: () => void
+interface HomePageProps {
   onPlay: (track: Track, queue?: Track[]) => void
   currentTrack: Track | null
+  onNavigate: (page: 'search' | 'import' | 'profile') => void
 }
 
-// 1. We extract the row into a Sortable item component
-function SortableTrackItem({ 
-  track, 
-  index, 
-  isPlaying, 
-  editing, 
-  onPlay, 
-  onRemove, 
-  tracks 
-}: { 
-  track: Track; 
-  index: number; 
-  isPlaying: boolean; 
-  editing: boolean; 
-  onPlay: (t: Track, q: Track[]) => void; 
-  onRemove: (id: string | number) => void;
-  tracks: Track[]
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: track.id }) // Assumes track.id is unique!
+const QUICK_PICKS: Track[] = [
+  { id: 'y6120QOlsfU', title: 'Midnight City', artist: 'M83', albumArt: 'https://i.ytimg.com/vi/y6120QOlsfU/mqdefault.jpg', duration: 243, youtubeId: 'y6120QOlsfU' },
+  { id: 'rDBiqGOytMw', title: 'Sunset', artist: 'The Midnight', albumArt: 'https://i.ytimg.com/vi/rDBiqGOytMw/mqdefault.jpg', duration: 326, youtubeId: 'rDBiqGOytMw' },
+  { id: '8GW6sLrK40k', title: 'Resonance', artist: 'HOME', albumArt: 'https://i.ytimg.com/vi/8GW6sLrK40k/mqdefault.jpg', duration: 212, youtubeId: '8GW6sLrK40k' },
+  { id: 'MV_3Dpw-BRY', title: 'Nightcall', artist: 'Kavinsky', albumArt: 'https://i.ytimg.com/vi/MV_3Dpw-BRY/mqdefault.jpg', duration: 258, youtubeId: 'MV_3Dpw-BRY' },
+  { id: 'awimGQAAweA', title: 'Running In The Night', artist: 'FM-84', albumArt: 'https://i.ytimg.com/vi/awimGQAAweA/mqdefault.jpg', duration: 270, youtubeId: 'awimGQAAweA' },
+  { id: '0AioD3iFv5c', title: 'On the Run', artist: 'Timecop1983', albumArt: 'https://i.ytimg.com/vi/0AioD3iFv5c/mqdefault.jpg', duration: 315, youtubeId: '0AioD3iFv5c' },
+]
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 50 : 'auto',
-    opacity: isDragging ? 0.5 : 1,
-  }
+const FEATURED: Track[] = [
+  { id: 'H5v3kku4y6Q', title: 'Heat Waves', artist: 'Glass Animals', albumArt: 'https://i.ytimg.com/vi/H5v3kku4y6Q/mqdefault.jpg', duration: 238, youtubeId: 'H5v3kku4y6Q' },
+  { id: '6I3smoq1HCs', title: 'Cruel Summer', artist: 'Taylor Swift', albumArt: 'https://i.ytimg.com/vi/6I3smoq1HCs/mqdefault.jpg', duration: 178, youtubeId: '6I3smoq1HCs' },
+  { id: 'PT2_F-1esPk', title: 'Levitating', artist: 'Dua Lipa', albumArt: 'https://i.ytimg.com/vi/PT2_F-1esPk/mqdefault.jpg', duration: 203, youtubeId: 'PT2_F-1esPk' },
+  { id: 'TUVcZfQe-Kw', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/mqdefault.jpg', duration: 167, youtubeId: 'TUVcZfQe-Kw' },
+  { id: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234, youtubeId: 'JGwWNGJdvx8' },
+  { id: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270, youtubeId: 'OPf0YbXqDm0' },
+]
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`group flex items-center gap-3 rounded-md px-4 py-2 transition-colors duration-200 ${
-        isPlaying ? 'bg-[#282828]' : 'hover:bg-[#2a2a2a]'
-      } ${isDragging ? 'bg-[#333333] shadow-xl ring-1 ring-white/20' : ''}`}
-    >
-      <div className="w-10 shrink-0 text-center flex items-center justify-center">
-        {editing ? (
-          <span className="text-base text-[#b3b3b3]">{index + 1}</span>
-        ) : (
-          <div className="relative flex h-8 w-8 items-center justify-center">
-            {isPlaying ? (
-              <div className="flex gap-1 items-center justify-center">
-                <div className="w-1 h-3 bg-[#1ed760] animate-pulse rounded-full" />
-                <div className="w-1 h-3 bg-[#1ed760] animate-pulse rounded-full delay-75" />
-              </div>
-            ) : (
-              <>
-                <span className="text-base text-[#b3b3b3] group-hover:hidden">{index + 1}</span>
-                <button
-                  onClick={() => onPlay(track, tracks)}
-                  className="hidden h-8 w-8 items-center justify-center text-white group-hover:flex"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
+  const { user } = useAuth()
+  const [ytTracks, setYtTracks] = useState<Track[]>([])
+  const [ytLoading, setYtLoading] = useState(false)
+  
+  const firstName = (user?.name ?? 'there').split(' ')[0]
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'
 
-      <img
-        src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
-        alt={track.title}
-        className="h-10 w-10 shrink-0 rounded-md object-cover shadow-sm"
-      />
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 18) return 'Good afternoon'
+    return 'Good evening'
+  }, [])
 
-      <div className="min-w-0 flex-1 pl-2">
-        <p className={`truncate text-base font-medium tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
-          {track.title}
-        </p>
-        <p className="truncate text-sm text-[#b3b3b3] hover:underline cursor-pointer inline-block">
-          {track.artist}
-        </p>
-      </div>
+  useEffect(() => {
+    const key = import.meta.env.VITE_YOUTUBE_API_KEY
+    if (!key) return
 
-      {editing && (
-        <div className="flex shrink-0 items-center gap-2 pr-2">
-          {/* DRAG HANDLE */}
-          <button
-            type="button"
-            className="cursor-grab active:cursor-grabbing text-[#b3b3b3] hover:text-white transition-colors p-1"
-            {...attributes}
-            {...listeners}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z" />
-            </svg>
-          </button>
+    setYtLoading(true)
+    searchYouTube('trending music 2024', 8)
+      .then(tracks => setYtTracks(tracks))
+      .catch(console.error)
+      .finally(() => setYtLoading(false))
+  }, [])
 
-          {/* REMOVE BUTTON */}
-          <button
-            type="button"
-            onClick={() => onRemove(track.id)}
-            className="ml-2 text-[#b3b3b3] hover:text-rose-500 transition-colors p-1"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-export default function EditPlaylistPage({ playlist, onSave, onBack, onPlay, currentTrack }: EditPlaylistPageProps) {
-  const [name, setName] = useState(playlist.name)
-  const [tracks, setTracks] = useState<Track[]>([...playlist.tracks])
-  const [editing, setEditing] = useState(false)
-
-  // 2. Set up DnD sensors (Mouse, Touch, and Keyboard support)
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  const handleSave = () => {
-    onSave({ ...playlist, name, tracks })
-    setEditing(false)
-  }
-
-  const handleRemoveTrack = (id: string | number) => {
-    setTracks(prev => prev.filter(track => track.id !== id))
-  }
-
-  // 3. Handle what happens when a user drops a track
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    
-    if (over && active.id !== over.id) {
-      setTracks((items) => {
-        const oldIndex = items.findIndex(t => t.id === active.id)
-        const newIndex = items.findIndex(t => t.id === over.id)
-        return arrayMove(items, oldIndex, newIndex)
-      })
-    }
-  }
+  const recommendedTracks = ytTracks.length > 0 ? ytTracks : FEATURED
 
   return (
-    <div className="px-4 pb-20 pt-8 sm:px-6 lg:px-8 max-w-[1400px] mx-auto font-sans bg-[#121212] min-h-screen text-white">
+    <div className="relative min-h-screen bg-[#050505] font-sans text-white selection:bg-[#1ed760]/30 selection:text-white pb-24">
       
-      {/* HEADER SECTION (Unchanged) */}
-      <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between border-b border-white/10 pb-8">
-        <div className="flex items-center gap-6 flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#181818] text-[#b3b3b3] transition-all hover:bg-[#282828] hover:text-white hover:scale-105"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
-            </svg>
-          </button>
+      {/* 🌌 AMBIENT ANIMATED BACKGROUND GLOWS */}
+      <div className="pointer-events-none absolute left-0 top-0 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1ed760]/10 blur-[120px]" />
+      <div className="pointer-events-none absolute right-0 top-[20%] h-[600px] w-[600px] translate-x-1/3 rounded-full bg-indigo-500/10 blur-[150px]" />
 
-          <div className="min-w-0 flex-1">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#b3b3b3]">
-              Playlist
-            </p>
-            {editing ? (
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="w-full bg-transparent text-5xl sm:text-7xl font-bold tracking-tighter text-white outline-none border-b border-[#1ed760] focus:border-[#3be477] transition-colors pb-2"
-                autoFocus
-                placeholder="Playlist Name"
-              />
-            ) : (
-              <h1 className="truncate text-5xl sm:text-7xl font-bold tracking-tighter text-white pb-2">
-                {name}
-              </h1>
-            )}
-            <p className="mt-2 text-sm font-medium text-[#b3b3b3]">
-              {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}
-            </p>
-          </div>
-        </div>
-
-        {/* Action Buttons (Unchanged) */}
-        <div className="flex shrink-0 items-center gap-3 pb-2">
-          {editing ? (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setName(playlist.name)
-                  setTracks([...playlist.tracks])
-                  setEditing(false)
-                }}
-                className="rounded-full px-6 py-3 text-sm font-bold text-white hover:scale-105 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="rounded-full bg-white px-8 py-3 text-sm font-bold text-black hover:scale-105 transition-all"
-              >
-                Save
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded-full border border-[#727272] bg-transparent px-8 py-3 text-sm font-bold text-white transition-all hover:scale-105 hover:border-white"
+      <div className="relative z-10 mx-auto max-w-[1600px] px-4 pt-8 sm:px-6 lg:px-8">
+        
+        {/* ✨ HYPER-PREMIUM HEADER */}
+        <div className="mb-10 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
+          <h1 className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-4xl font-extrabold tracking-tighter text-transparent sm:text-5xl drop-shadow-sm">
+            {greeting}
+          </h1>
+          
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button 
+              onClick={() => onNavigate('search')} 
+              className="group relative hidden sm:flex items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-all hover:border-white/30 hover:bg-white/10 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-95"
             >
-              Edit Details
+              Browse
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* PLAY BUTTON (Unchanged) */}
-      <div className="mb-8">
-        <button
-          type="button"
-          onClick={() => tracks.length > 0 && onPlay(tracks[0], tracks)}
-          disabled={tracks.length === 0}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-lg transition-all hover:scale-105 hover:bg-[#3be477] disabled:opacity-50 disabled:hover:scale-100"
-        >
-          <svg className="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* TRACKS LIST */}
-      <div className="mt-2">
-        {tracks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg className="mb-4 h-16 w-16 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-            <h3 className="mb-2 text-xl font-bold tracking-tight text-white">It's a bit empty here...</h3>
-            <p className="text-sm font-medium text-[#b3b3b3]">Find more songs to add to your playlist.</p>
+            <button 
+              onClick={() => onNavigate('import')} 
+              className="group relative hidden sm:flex items-center justify-center overflow-hidden rounded-full bg-[#1ed760] px-6 py-2.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-[#3be477] hover:shadow-[0_0_30px_rgba(30,215,96,0.4)] active:scale-95"
+            >
+              Import
+            </button>
+            <button 
+              onClick={() => onNavigate('profile')}
+              className="relative ml-2 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-[#181818] to-[#0a0a0a] text-sm font-bold text-white shadow-xl backdrop-blur-xl transition-all hover:scale-105 hover:border-[#1ed760]/50 hover:shadow-[0_0_25px_rgba(30,215,96,0.2)] active:scale-95"
+            >
+              {initials}
+            </button>
           </div>
-        ) : (
-          <div className="flex flex-col">
-            <div className="flex px-4 py-2 border-b border-white/10 mb-2 text-[11px] uppercase text-[#b3b3b3] font-bold tracking-widest">
+        </div>
+
+        {/* 🎛️ GLASSMORPHISM QUICK PICKS */}
+        <div className="mb-14 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 fill-mode-both">
+          {QUICK_PICKS.map(track => {
+            const isPlaying = currentTrack?.id === track.id
+            return (
+              <div
+                key={`quick-${track.id}`}
+                onClick={() => onPlay(track, QUICK_PICKS)}
+                className="group relative flex h-16 sm:h-20 cursor-pointer items-center overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-xl transition-all duration-500 hover:border-white/10 hover:bg-white/[0.06] hover:shadow-2xl hover:shadow-[#1ed760]/5"
+              >
+                {/* Inner Light Sweep Effect */}
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+
+                <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden">
+                  <div className="absolute inset-0 bg-black/20 transition-opacity group-hover:opacity-0 z-10" />
+                  <img
+                    src={track.albumArt}
+                    alt={track.title}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                </div>
+                
+                <div className="flex flex-1 items-center justify-between px-4 z-10">
+                  <p className={`truncate text-sm sm:text-base font-bold tracking-tight transition-colors duration-300 ${isPlaying ? 'text-[#1ed760]' : 'text-white/90 group-hover:text-white'}`}>
+                    {track.title}
+                  </p>
+                  
+                  {/* Neon Play Button */}
+                  <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_0_20px_rgba(30,215,96,0.4)] transition-all duration-300 ease-out hover:scale-110 hover:bg-[#3be477] hover:shadow-[0_0_30px_rgba(30,215,96,0.6)] ${
+                    isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
+                  }`}>
+                    {isPlaying ? (
+                      <div className="flex gap-[3px] items-center justify-center">
+                        <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full" />
+                        <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full delay-75" />
+                      </div>
+                    ) : (
+                      <svg className="ml-1 h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 🎧 FADE-MASKED HORIZONTAL CAROUSEL */}
+        <div className="mb-14 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 fill-mode-both">
+          <h2 className="mb-6 text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
+            Made For You
+          </h2>
+
+          <div className="relative">
+            {/* Edge Fade Masks for a seamless infinite scroll look */}
+            <div className="absolute left-0 top-0 z-10 h-full w-8 bg-gradient-to-r from-[#050505] to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none" />
+
+            <div className="flex gap-5 overflow-x-auto pb-8 pt-2 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {FEATURED.map(track => {
+                const isPlaying = currentTrack?.id === track.id
+                return (
+                  <div
+                    key={`featured-${track.id}`}
+                    onClick={() => onPlay(track, FEATURED)}
+                    className={`group relative w-[160px] sm:w-[190px] shrink-0 snap-start cursor-pointer rounded-2xl p-4 transition-all duration-500 hover:-translate-y-2 ${
+                      isPlaying ? 'bg-white/10 border border-white/20' : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.08] hover:border-white/10 hover:shadow-2xl hover:shadow-white/5'
+                    }`}
+                  >
+                    <div className="relative mb-5 overflow-hidden rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.6)]">
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                      <img
+                        src={track.albumArt}
+                        alt={track.title}
+                        className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                      />
+                      
+                      {/* Premium Floating Overlay */}
+                      <div className={`absolute bottom-3 right-3 z-20 flex items-center justify-center transition-all duration-400 ease-out ${
+                        isPlaying ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-90 group-hover:translate-y-0 group-hover:opacity-100 group-hover:scale-100'
+                      }`}>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_10px_20px_rgba(0,0,0,0.5)] hover:bg-[#3be477] hover:scale-110 transition-all">
+                          {isPlaying ? (
+                            <div className="flex gap-1 items-center justify-center h-full">
+                              <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
+                              <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-75" />
+                              <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-150" />
+                            </div>
+                          ) : (
+                            <svg className="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className={`mb-1 truncate text-base font-extrabold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                      {track.title}
+                    </p>
+                    <p className="truncate text-sm font-medium text-[#888888] group-hover:text-[#b3b3b3] transition-colors">
+                      {track.artist}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 📊 ELEGANT TRENDING LIST */}
+        <div className="animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 fill-mode-both">
+          <div className="mb-6 flex items-end justify-between">
+            <h2 className="text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-pointer inline-block">
+              {ytTracks.length > 0 ? 'Trending Worldwide' : 'Popular Tracks'}
+            </h2>
+            
+            {ytLoading && (
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#1ed760] shadow-[0_0_15px_rgba(30,215,96,0.1)]">
+                <div className="h-1.5 w-1.5 animate-ping rounded-full bg-[#1ed760]" />
+                Live Sync
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-2xl p-2 sm:p-4">
+            <div className="flex px-4 py-3 border-b border-white/5 mb-2 text-[11px] uppercase text-[#666666] font-extrabold tracking-widest">
               <div className="w-10 text-center">#</div>
               <div className="flex-1">Title</div>
-              {editing && <div className="w-24 text-right">Controls</div>}
+              <div className="w-16 text-right">Time</div>
             </div>
 
-            {/* 4. The DnD Wrappers */}
-            <DndContext 
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext 
-                items={tracks.map(t => t.id)} 
-                strategy={verticalListSortingStrategy}
-              >
-                {tracks.map((track, index) => (
-                  <SortableTrackItem
-                    key={track.id}
+            <div className="flex flex-col gap-1">
+              {recommendedTracks.map((track, i) => (
+                <div key={`rec-${track.id}`} className="group rounded-xl transition-all duration-300 hover:bg-white/[0.04]">
+                   <TrackRow
                     track={track}
-                    index={index}
-                    isPlaying={currentTrack?.id === track.id}
-                    editing={editing}
-                    onPlay={onPlay}
-                    onRemove={handleRemoveTrack}
-                    tracks={tracks}
+                    index={i}
+                    isActive={currentTrack?.id === track.id}
+                    onPlay={t => onPlay(t, recommendedTracks)}
                   />
-                ))}
-              </SortableContext>
-            </DndContext>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-
-      {editing && tracks.length > 0 && (
-        <div className="mt-6 flex items-center justify-center">
-           <p className="text-xs font-bold uppercase tracking-widest text-[#b3b3b3]">
-            Edit Mode Active - Drag to Reorder
-          </p>
         </div>
-      )}
+
+      </div>
     </div>
   )
 }
