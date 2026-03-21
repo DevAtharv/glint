@@ -47,40 +47,35 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
   const recommendedTracks = ytTracks.length > 0 ? ytTracks : RECOMMENDED
 
   return (
-    <div className="px-4 pb-12 pt-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="px-4 pb-12 pt-6 sm:px-6 lg:px-8 max-w-[1400px] mx-auto font-sans bg-[#121212] min-h-screen text-white">
       
       {/* Hero Section */}
-      <div className="relative mb-12 overflow-hidden rounded-[32px] border border-white/5 bg-gradient-to-br from-[#1a1630] via-[#0f1020] to-[#12182e] p-8 sm:p-12 shadow-2xl">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-indigo-500/20 blur-[80px]" />
-        
+      <div className="relative mb-12 overflow-hidden rounded-xl bg-gradient-to-br from-[#2a2a2a] to-[#121212] p-8 sm:p-12">
         <div className="relative z-10">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-indigo-400">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#b3b3b3]">
             Welcome back, {firstName}
           </p>
 
-          <h1 className="mb-4 max-w-2xl font-serif text-4xl font-medium leading-tight text-white sm:text-5xl lg:text-6xl">
-            Your music,<br />
-            <span className="italic text-indigo-400">your way.</span>
+          <h1 className="mb-4 max-w-2xl text-5xl font-bold tracking-tighter text-white sm:text-6xl lg:text-7xl">
+            Your music, <br />
+            your way.
           </h1>
 
-          <p className="mb-8 max-w-md text-base text-zinc-400">
-            Ad-free listening. AI-powered playlists. Import from Spotify and more.
+          <p className="mb-8 max-w-md text-sm font-medium text-[#b3b3b3]">
+            Ad-free listening. AI-powered playlists. Import seamlessly from anywhere.
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row">
             <button
               onClick={() => onNavigate('import')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-500 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:bg-indigo-400 active:scale-95 shadow-lg shadow-indigo-500/25"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1ed760] px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-[#3be477]"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
               Import Playlist
             </button>
 
             <button
               onClick={() => onNavigate('search')}
-              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-zinc-300 backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white active:scale-95"
+              className="inline-flex items-center justify-center rounded-full border border-[#727272] bg-transparent px-8 py-3.5 text-sm font-bold text-white transition-all hover:scale-105 hover:border-white"
             >
               Browse Music
             </button>
@@ -90,37 +85,43 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
 
       {/* Featured Section */}
       <div className="mb-12">
-        <h2 className="mb-6 font-serif text-2xl font-medium text-white">Featured</h2>
+        <h2 className="mb-6 text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
+          Featured
+        </h2>
 
         {/* Hidden scrollbar utilities for a cleaner look */}
-        <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-4 overflow-x-auto pb-6 pt-2 px-2 -mx-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {FEATURED.map(track => {
             const isPlaying = currentTrack?.id === track.id
             return (
               <div
                 key={track.id}
                 onClick={() => onPlay(track, FEATURED)}
-                className={`group relative w-[160px] sm:w-[180px] shrink-0 snap-start cursor-pointer rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 ${
+                className={`group relative w-[180px] sm:w-[200px] shrink-0 snap-start cursor-pointer rounded-md p-4 transition-all duration-300 ${
                   isPlaying
-                    ? 'bg-indigo-500/10 border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
-                    : 'bg-[#11131A] border border-white/5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-black/50'
+                    ? 'bg-[#282828]'
+                    : 'bg-[#181818] hover:bg-[#282828]'
                 }`}
               >
-                <div className="relative mb-4 overflow-hidden rounded-xl bg-zinc-800 shadow-md">
+                <div className="relative mb-4">
                   <img
                     src={track.albumArt}
                     alt={track.title}
-                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="aspect-square w-full rounded-md object-cover shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
                   />
                   
-                  {/* Play Overlay */}
-                  <div className={`absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
+                  {/* Floating Play Overlay (Spotify Style) */}
+                  <div className={`absolute bottom-2 right-2 flex items-center justify-center shadow-xl transition-all duration-300 ease-in-out ${
+                    isPlaying 
+                      ? 'translate-y-0 opacity-100' 
+                      : 'translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
+                  }`}>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black hover:bg-[#3be477] hover:scale-105 transition-all">
                       {isPlaying ? (
-                        <div className="flex gap-1">
-                          <div className="w-1 h-3 bg-white animate-pulse rounded-full" />
-                          <div className="w-1 h-3 bg-white animate-pulse rounded-full delay-75" />
-                          <div className="w-1 h-3 bg-white animate-pulse rounded-full delay-150" />
+                        <div className="flex gap-1 items-center justify-center h-full">
+                          <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
+                          <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-75" />
+                          <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-150" />
                         </div>
                       ) : (
                         <svg className="ml-1 h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -131,10 +132,10 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
                   </div>
                 </div>
 
-                <p className={`mb-1 truncate text-base font-semibold transition-colors ${isPlaying ? 'text-indigo-400' : 'text-zinc-100 group-hover:text-white'}`}>
+                <p className={`mb-1 truncate text-base font-bold tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
                   {track.title}
                 </p>
-                <p className="truncate text-sm text-zinc-400 group-hover:text-zinc-300">
+                <p className="truncate text-sm font-medium text-[#b3b3b3] hover:underline cursor-pointer inline-block">
                   {track.artist}
                 </p>
               </div>
@@ -146,28 +147,37 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
       {/* Recommended/Trending Section */}
       <div>
         <div className="mb-6 flex items-end justify-between">
-          <h2 className="font-serif text-2xl font-medium text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
             {ytTracks.length > 0 ? 'Trending Now' : 'Recommended'}
           </h2>
           
           {ytLoading && (
-            <div className="flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-zinc-400 border border-white/5">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
-              Loading...
+            <div className="flex items-center gap-2 rounded-full bg-[#181818] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#b3b3b3]">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-[#1ed760]" />
+              Loading
             </div>
           )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          {recommendedTracks.map((track, i) => (
-            <TrackRow
-              key={track.id}
-              track={track}
-              index={i}
-              isActive={currentTrack?.id === track.id}
-              onPlay={t => onPlay(t, recommendedTracks)}
-            />
-          ))}
+        <div className="mt-2 rounded-lg">
+          {/* Header Row for Tracks */}
+          <div className="flex px-4 py-2 border-b border-white/10 mb-2 text-sm text-[#b3b3b3] font-medium tracking-wide">
+            <div className="w-8 text-center">#</div>
+            <div className="flex-1">Title</div>
+            <div className="w-12 text-right">⌚</div>
+          </div>
+
+          <div className="flex flex-col">
+            {recommendedTracks.map((track, i) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                index={i}
+                isActive={currentTrack?.id === track.id}
+                onPlay={t => onPlay(t, recommendedTracks)}
+              />
+            ))}
+          </div>
         </div>
       </div>
       
