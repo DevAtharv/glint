@@ -1,211 +1,321 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import type { Track } from '../types'
-import { searchYouTube } from '../services/youtube'
-import TrackRow from '../components/TrackRow'
-import { useAuth } from '../hooks/useAuth'
+import React, { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import type { Track, Playlist } from '../types'
 
-interface HomePageProps {
+interface EditPlaylistPageProps {
+  playlist: Playlist
+  onSave: (playlist: Playlist) => void
+  onBack: () => void
   onPlay: (track: Track, queue?: Track[]) => void
   currentTrack: Track | null
-  onNavigate: (page: 'search' | 'import') => void
 }
 
-// Updated to match the "Electric Dreams" Synthwave & Indie Vibe from the screenshot
-const QUICK_PICKS: Track[] = [
-  { id: 'y6120QOlsfU', title: 'Midnight City', artist: 'M83', albumArt: 'https://i.ytimg.com/vi/y6120QOlsfU/mqdefault.jpg', duration: 243, youtubeId: 'y6120QOlsfU' },
-  { id: 'rDBiqGOytMw', title: 'Sunset', artist: 'The Midnight', albumArt: 'https://i.ytimg.com/vi/rDBiqGOytMw/mqdefault.jpg', duration: 326, youtubeId: 'rDBiqGOytMw' },
-  { id: '8GW6sLrK40k', title: 'Resonance', artist: 'HOME', albumArt: 'https://i.ytimg.com/vi/8GW6sLrK40k/mqdefault.jpg', duration: 212, youtubeId: '8GW6sLrK40k' },
-  { id: 'MV_3Dpw-BRY', title: 'Nightcall', artist: 'Kavinsky', albumArt: 'https://i.ytimg.com/vi/MV_3Dpw-BRY/mqdefault.jpg', duration: 258, youtubeId: 'MV_3Dpw-BRY' },
-  { id: 'awimGQAAweA', title: 'Running In The Night', artist: 'FM-84', albumArt: 'https://i.ytimg.com/vi/awimGQAAweA/mqdefault.jpg', duration: 270, youtubeId: 'awimGQAAweA' },
-  { id: '0AioD3iFv5c', title: 'On the Run', artist: 'Timecop1983', albumArt: 'https://i.ytimg.com/vi/0AioD3iFv5c/mqdefault.jpg', duration: 315, youtubeId: '0AioD3iFv5c' },
-]
+// 1. We extract the row into a Sortable item component
+function SortableTrackItem({ 
+  track, 
+  index, 
+  isPlaying, 
+  editing, 
+  onPlay, 
+  onRemove, 
+  tracks 
+}: { 
+  track: Track; 
+  index: number; 
+  isPlaying: boolean; 
+  editing: boolean; 
+  onPlay: (t: Track, q: Track[]) => void; 
+  onRemove: (id: string | number) => void;
+  tracks: Track[]
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: track.id }) // Assumes track.id is unique!
 
-const FEATURED: Track[] = [
-  { id: 'H5v3kku4y6Q', title: 'Heat Waves', artist: 'Glass Animals', albumArt: 'https://i.ytimg.com/vi/H5v3kku4y6Q/mqdefault.jpg', duration: 238, youtubeId: 'H5v3kku4y6Q' },
-  { id: '6I3smoq1HCs', title: 'Cruel Summer', artist: 'Taylor Swift', albumArt: 'https://i.ytimg.com/vi/6I3smoq1HCs/mqdefault.jpg', duration: 178, youtubeId: '6I3smoq1HCs' },
-  { id: 'PT2_F-1esPk', title: 'Levitating', artist: 'Dua Lipa', albumArt: 'https://i.ytimg.com/vi/PT2_F-1esPk/mqdefault.jpg', duration: 203, youtubeId: 'PT2_F-1esPk' },
-  { id: 'TUVcZfQe-Kw', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/mqdefault.jpg', duration: 167, youtubeId: 'TUVcZfQe-Kw' },
-  { id: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234, youtubeId: 'JGwWNGJdvx8' },
-  { id: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270, youtubeId: 'OPf0YbXqDm0' },
-]
-
-export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
-  const { user } = useAuth()
-  const [ytTracks, setYtTracks] = useState<Track[]>([])
-  const [ytLoading, setYtLoading] = useState(false)
-  
-  const firstName = (user?.name ?? 'there').split(' ')[0]
-
-  // Dynamic time-based greeting just like the screenshot
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 18) return 'Good afternoon'
-    return 'Good evening'
-  }, [])
-
-  useEffect(() => {
-    const key = import.meta.env.VITE_YOUTUBE_API_KEY
-    if (!key) return
-
-    setYtLoading(true)
-    searchYouTube('trending music 2024', 8)
-      .then(tracks => setYtTracks(tracks))
-      .catch(console.error)
-      .finally(() => setYtLoading(false))
-  }, [])
-
-  const recommendedTracks = ytTracks.length > 0 ? ytTracks : FEATURED
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   return (
-    <div className="px-4 pb-24 pt-8 sm:px-6 lg:px-8 max-w-[1600px] mx-auto font-sans bg-[#121212] min-h-screen text-white">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-center gap-3 rounded-md px-4 py-2 transition-colors duration-200 ${
+        isPlaying ? 'bg-[#282828]' : 'hover:bg-[#2a2a2a]'
+      } ${isDragging ? 'bg-[#333333] shadow-xl ring-1 ring-white/20' : ''}`}
+    >
+      <div className="w-10 shrink-0 text-center flex items-center justify-center">
+        {editing ? (
+          <span className="text-base text-[#b3b3b3]">{index + 1}</span>
+        ) : (
+          <div className="relative flex h-8 w-8 items-center justify-center">
+            {isPlaying ? (
+              <div className="flex gap-1 items-center justify-center">
+                <div className="w-1 h-3 bg-[#1ed760] animate-pulse rounded-full" />
+                <div className="w-1 h-3 bg-[#1ed760] animate-pulse rounded-full delay-75" />
+              </div>
+            ) : (
+              <>
+                <span className="text-base text-[#b3b3b3] group-hover:hidden">{index + 1}</span>
+                <button
+                  onClick={() => onPlay(track, tracks)}
+                  className="hidden h-8 w-8 items-center justify-center text-white group-hover:flex"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <img
+        src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
+        alt={track.title}
+        className="h-10 w-10 shrink-0 rounded-md object-cover shadow-sm"
+      />
+
+      <div className="min-w-0 flex-1 pl-2">
+        <p className={`truncate text-base font-medium tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+          {track.title}
+        </p>
+        <p className="truncate text-sm text-[#b3b3b3] hover:underline cursor-pointer inline-block">
+          {track.artist}
+        </p>
+      </div>
+
+      {editing && (
+        <div className="flex shrink-0 items-center gap-2 pr-2">
+          {/* DRAG HANDLE */}
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-[#b3b3b3] hover:text-white transition-colors p-1"
+            {...attributes}
+            {...listeners}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z" />
+            </svg>
+          </button>
+
+          {/* REMOVE BUTTON */}
+          <button
+            type="button"
+            onClick={() => onRemove(track.id)}
+            className="ml-2 text-[#b3b3b3] hover:text-rose-500 transition-colors p-1"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function EditPlaylistPage({ playlist, onSave, onBack, onPlay, currentTrack }: EditPlaylistPageProps) {
+  const [name, setName] = useState(playlist.name)
+  const [tracks, setTracks] = useState<Track[]>([...playlist.tracks])
+  const [editing, setEditing] = useState(false)
+
+  // 2. Set up DnD sensors (Mouse, Touch, and Keyboard support)
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleSave = () => {
+    onSave({ ...playlist, name, tracks })
+    setEditing(false)
+  }
+
+  const handleRemoveTrack = (id: string | number) => {
+    setTracks(prev => prev.filter(track => track.id !== id))
+  }
+
+  // 3. Handle what happens when a user drops a track
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    
+    if (over && active.id !== over.id) {
+      setTracks((items) => {
+        const oldIndex = items.findIndex(t => t.id === active.id)
+        const newIndex = items.findIndex(t => t.id === over.id)
+        return arrayMove(items, oldIndex, newIndex)
+      })
+    }
+  }
+
+  return (
+    <div className="px-4 pb-20 pt-8 sm:px-6 lg:px-8 max-w-[1400px] mx-auto font-sans bg-[#121212] min-h-screen text-white">
       
-      {/* Header & Dynamic Greeting */}
-      <div className="mb-8 flex items-end justify-between">
-        <h1 className="text-3xl font-bold tracking-tighter text-white sm:text-4xl">
-          {greeting}
-        </h1>
-        <div className="hidden sm:flex gap-3">
-          <button onClick={() => onNavigate('search')} className="rounded-full bg-transparent border border-[#727272] px-5 py-2 text-sm font-bold text-white hover:border-white hover:scale-105 transition-all">
-            Browse
+      {/* HEADER SECTION (Unchanged) */}
+      <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between border-b border-white/10 pb-8">
+        <div className="flex items-center gap-6 flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#181818] text-[#b3b3b3] transition-all hover:bg-[#282828] hover:text-white hover:scale-105"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
+            </svg>
           </button>
-          <button onClick={() => onNavigate('import')} className="rounded-full bg-[#1ed760] px-5 py-2 text-sm font-bold text-black hover:bg-[#3be477] hover:scale-105 transition-all shadow-[0_4px_12px_rgba(30,215,96,0.3)]">
-            Import
-          </button>
-        </div>
-      </div>
 
-      {/* Made For You / Quick Picks Grid (Matches the "Home Dashboard" screenshot) */}
-      <div className="mb-12 grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {QUICK_PICKS.map(track => {
-          const isPlaying = currentTrack?.id === track.id
-          return (
-            <div
-              key={`quick-${track.id}`}
-              onClick={() => onPlay(track, QUICK_PICKS)}
-              className="group relative flex h-16 sm:h-20 cursor-pointer items-center overflow-hidden rounded-md bg-[#2a2a2a]/60 transition-all duration-300 hover:bg-[#3e3e3e]/80"
-            >
-              <img
-                src={track.albumArt}
-                alt={track.title}
-                className="h-16 w-16 sm:h-20 sm:w-20 object-cover shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
+          <div className="min-w-0 flex-1">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#b3b3b3]">
+              Playlist
+            </p>
+            {editing ? (
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full bg-transparent text-5xl sm:text-7xl font-bold tracking-tighter text-white outline-none border-b border-[#1ed760] focus:border-[#3be477] transition-colors pb-2"
+                autoFocus
+                placeholder="Playlist Name"
               />
-              <div className="flex flex-1 items-center justify-between px-4">
-                <p className={`truncate text-sm sm:text-base font-bold tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
-                  {track.title}
-                </p>
-                
-                {/* Floating right play button */}
-                <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-xl transition-all duration-300 ease-in-out hover:scale-105 hover:bg-[#3be477] ${
-                  isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'
-                }`}>
-                  {isPlaying ? (
-                    <div className="flex gap-[3px] items-center justify-center">
-                      <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full" />
-                      <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full delay-75" />
-                    </div>
-                  ) : (
-                    <svg className="ml-1 h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Recently Played / Featured Carousels */}
-      <div className="mb-12">
-        <h2 className="mb-6 text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
-          Recently Played
-        </h2>
-
-        {/* Hidden scrollbar utilities */}
-        <div className="flex gap-5 overflow-x-auto pb-6 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {FEATURED.map(track => {
-            const isPlaying = currentTrack?.id === track.id
-            return (
-              <div
-                key={`featured-${track.id}`}
-                onClick={() => onPlay(track, FEATURED)}
-                className={`group relative w-[160px] sm:w-[180px] shrink-0 snap-start cursor-pointer rounded-lg p-4 transition-all duration-300 ${
-                  isPlaying ? 'bg-[#282828]' : 'bg-[#181818] hover:bg-[#282828]'
-                }`}
-              >
-                <div className="relative mb-4 overflow-hidden rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-                  <img
-                    src={track.albumArt}
-                    alt={track.title}
-                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  
-                  {/* Floating Play Overlay */}
-                  <div className={`absolute bottom-2 right-2 flex items-center justify-center transition-all duration-300 ease-out ${
-                    isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
-                  }`}>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-xl hover:bg-[#3be477] hover:scale-105 transition-all">
-                      {isPlaying ? (
-                        <div className="flex gap-1 items-center justify-center h-full">
-                          <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
-                          <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-75" />
-                          <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-150" />
-                        </div>
-                      ) : (
-                        <svg className="ml-1 h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <p className={`mb-1 truncate text-base font-bold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
-                  {track.title}
-                </p>
-                <p className="truncate text-sm font-medium text-[#b3b3b3]">
-                  {track.artist}
-                </p>
-              </div>
-            )
-          })}
+            ) : (
+              <h1 className="truncate text-5xl sm:text-7xl font-bold tracking-tighter text-white pb-2">
+                {name}
+              </h1>
+            )}
+            <p className="mt-2 text-sm font-medium text-[#b3b3b3]">
+              {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Trending Tracks Section */}
-      <div>
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
-            {ytTracks.length > 0 ? 'Trending Now' : 'Popular'}
-          </h2>
-          
-          {ytLoading && (
-            <div className="flex items-center gap-2 rounded-full bg-[#181818] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b3b3b3] border border-white/5">
-              <div className="h-1.5 w-1.5 animate-ping rounded-full bg-[#1ed760]" />
-              Syncing
-            </div>
+        {/* Action Buttons (Unchanged) */}
+        <div className="flex shrink-0 items-center gap-3 pb-2">
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setName(playlist.name)
+                  setTracks([...playlist.tracks])
+                  setEditing(false)
+                }}
+                className="rounded-full px-6 py-3 text-sm font-bold text-white hover:scale-105 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-full bg-white px-8 py-3 text-sm font-bold text-black hover:scale-105 transition-all"
+              >
+                Save
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="rounded-full border border-[#727272] bg-transparent px-8 py-3 text-sm font-bold text-white transition-all hover:scale-105 hover:border-white"
+            >
+              Edit Details
+            </button>
           )}
         </div>
-
-        <div className="mt-2">
-          {/* Header Row for Tracks */}
-          <div className="flex px-4 py-2 border-b border-white/5 mb-2 text-[11px] uppercase text-[#b3b3b3] font-bold tracking-widest">
-            <div className="w-10 text-center">#</div>
-            <div className="flex-1">Title</div>
-            <div className="w-16 text-right">Time</div>
-          </div>
-
-          <div className="flex flex-col">
-            {recommendedTracks.map((track, i) => (
-              <TrackRow
-                key={`rec-${track.id}`}
-                track={track}
-                index={i}
-                isActive={currentTrack?.id === track.id}
-                onPlay={t => onPlay(t, recommendedTracks)}
-              />
-            ))}
-          </div>
-        </div>
       </div>
-      
+
+      {/* PLAY BUTTON (Unchanged) */}
+      <div className="mb-8">
+        <button
+          type="button"
+          onClick={() => tracks.length > 0 && onPlay(tracks[0], tracks)}
+          disabled={tracks.length === 0}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-lg transition-all hover:scale-105 hover:bg-[#3be477] disabled:opacity-50 disabled:hover:scale-100"
+        >
+          <svg className="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
+      </div>
+
+      {/* TRACKS LIST */}
+      <div className="mt-2">
+        {tracks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <svg className="mb-4 h-16 w-16 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            </svg>
+            <h3 className="mb-2 text-xl font-bold tracking-tight text-white">It's a bit empty here...</h3>
+            <p className="text-sm font-medium text-[#b3b3b3]">Find more songs to add to your playlist.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <div className="flex px-4 py-2 border-b border-white/10 mb-2 text-[11px] uppercase text-[#b3b3b3] font-bold tracking-widest">
+              <div className="w-10 text-center">#</div>
+              <div className="flex-1">Title</div>
+              {editing && <div className="w-24 text-right">Controls</div>}
+            </div>
+
+            {/* 4. The DnD Wrappers */}
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={tracks.map(t => t.id)} 
+                strategy={verticalListSortingStrategy}
+              >
+                {tracks.map((track, index) => (
+                  <SortableTrackItem
+                    key={track.id}
+                    track={track}
+                    index={index}
+                    isPlaying={currentTrack?.id === track.id}
+                    editing={editing}
+                    onPlay={onPlay}
+                    onRemove={handleRemoveTrack}
+                    tracks={tracks}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
+        )}
+      </div>
+
+      {editing && tracks.length > 0 && (
+        <div className="mt-6 flex items-center justify-center">
+           <p className="text-xs font-bold uppercase tracking-widest text-[#b3b3b3]">
+            Edit Mode Active - Drag to Reorder
+          </p>
+        </div>
+      )}
     </div>
   )
 }
