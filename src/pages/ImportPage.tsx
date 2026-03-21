@@ -30,21 +30,28 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
   const addStatus = (msg: string, type: 'info' | 'ok' | 'err' = 'info') =>
     setStatusLines(prev => [...prev, { msg, type }])
 
-  const reset = () => { setStatusLines([]); setGeneratedPlaylist(null); setSaved(false) }
+  const reset = () => {
+    setStatusLines([])
+    setGeneratedPlaylist(null)
+    setSaved(false)
+  }
 
   const handleGenerate = async () => {
     const fullPrompt = prompt.trim() || selectedMoods.join(', ') + ' music'
     reset()
     setLoading(true)
+
     try {
       addStatus(`Starting: "${fullPrompt}"`, 'info')
       let pl: Playlist
+
       if (hasBackend()) {
         addStatus('Using backend for full AI generation...', 'info')
         pl = await generateFromBackend(fullPrompt, msg => addStatus(msg, 'info'))
       } else {
         pl = await generatePlaylistFromPrompt(fullPrompt, msg => addStatus(msg, 'info'))
       }
+
       if (pl.tracks.length === 0) {
         addStatus('No tracks found — try a different description', 'err')
       } else {
@@ -60,19 +67,29 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
 
   const handleImport = async () => {
     const url = importUrl.trim()
-    if (!url) { addStatus('Please paste a playlist URL', 'err'); return }
-    if (!url.startsWith('http')) { addStatus('URL must start with http://', 'err'); return }
+    if (!url) {
+      addStatus('Please paste a playlist URL', 'err')
+      return
+    }
+    if (!url.startsWith('http')) {
+      addStatus('URL must start with http:// or https://', 'err')
+      return
+    }
+
     reset()
     setLoading(true)
+
     try {
       addStatus(`Importing from: ${url.slice(0, 50)}...`, 'info')
       let pl: Playlist
+
       if (hasBackend()) {
         addStatus('Using backend for full playlist import...', 'info')
         pl = await importFromBackend(url, msg => addStatus(msg, 'info'))
       } else {
         pl = await importPlaylistFromUrl(url, msg => addStatus(msg, 'info'))
       }
+
       if (pl.tracks.length === 0) {
         addStatus('No tracks found — try a different URL', 'err')
       } else {
@@ -87,205 +104,261 @@ export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: Imp
   }
 
   const chip = (label: string, active: boolean, onClick: () => void) => (
-    <span key={label} onClick={onClick} style={{
-      display: 'inline-flex', padding: '5px 13px', borderRadius: 20,
-      fontSize: 12, fontWeight: 600, cursor: 'pointer',
-      marginRight: 6, marginBottom: 6, userSelect: 'none' as const,
-      background: active ? 'rgba(108,99,255,.15)' : '#141720',
-      color: active ? '#8B85FF' : '#8B8FA8',
-      border: active ? '1px solid rgba(108,99,255,.3)' : '1px solid rgba(255,255,255,.06)',
-    }}>{label}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`mb-2 mr-2 inline-flex select-none items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? 'border-indigo-500/30 bg-[rgba(108,99,255,0.15)] text-[#8B85FF]'
+          : 'border-white/10 bg-[#171923] text-[#A0A3B1] hover:bg-white/5 hover:text-[#EEF0FF]'
+      }`}
+    >
+      {label}
+    </button>
   )
 
-  const inp: React.CSSProperties = {
-    width: '100%', background: '#141720',
-    border: '1px solid rgba(255,255,255,.06)', borderRadius: 10,
-    padding: '11px 14px', color: '#EEF0FF', fontSize: 13,
-    fontFamily: "'Manrope',sans-serif", outline: 'none',
-  }
+  const inp =
+    'w-full rounded-2xl border border-white/10 bg-[#171923] px-4 py-3 text-sm text-[#EEF0FF] outline-none transition placeholder:text-[#6B6F85] focus:border-indigo-500/40'
 
   return (
-    <div style={{ padding: '0 32px 40px' }}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#6C63FF,#FF4D6D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#6C63FF,#FF4D6D)]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
         </div>
         <div>
-          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 22, color: '#EEF0FF' }}>AI Playlist Import</h2>
-          <p style={{ fontSize: 12, color: '#8B8FA8', marginTop: 2 }}>Generate playlists with AI or import from Spotify, Apple Music & more</p>
+          <h2 className="font-serif text-2xl text-[#EEF0FF]">AI Playlist Import</h2>
+          <p className="mt-1 text-xs text-[#A0A3B1] sm:text-sm">
+            Generate playlists with AI or import from Spotify, Apple Music and more
+          </p>
         </div>
       </div>
 
-      {/* Config status */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: BACKEND ? 'rgba(45,216,129,.08)' : 'rgba(245,166,35,.08)', border: `1px solid ${BACKEND ? 'rgba(45,216,129,.2)' : 'rgba(245,166,35,.2)'}` }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: BACKEND ? '#2DD881' : '#f5a623' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: BACKEND ? '#2DD881' : '#f5a623' }}>
-            Backend: {BACKEND ? `Connected (${BACKEND})` : 'Not set — using direct API'}
-          </span>
+      <div className="mb-5 flex flex-wrap gap-2">
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+            BACKEND
+              ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+              : 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+          }`}
+        >
+          <span className={`h-2 w-2 rounded-full ${BACKEND ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+          Backend: {BACKEND ? 'Connected' : 'Not set'}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: hasGroqKey ? 'rgba(45,216,129,.08)' : 'rgba(255,77,109,.08)', border: `1px solid ${hasGroqKey ? 'rgba(45,216,129,.2)' : 'rgba(255,77,109,.2)'}` }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: hasGroqKey ? '#2DD881' : '#FF4D6D' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: hasGroqKey ? '#2DD881' : '#FF4D6D' }}>
-            Groq AI: {hasGroqKey ? 'Connected' : 'No key — using fallback tracks'}
-          </span>
+
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+            hasGroqKey
+              ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+              : 'border-rose-500/20 bg-rose-500/10 text-rose-400'
+          }`}
+        >
+          <span className={`h-2 w-2 rounded-full ${hasGroqKey ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+          Groq AI: {hasGroqKey ? 'Connected' : 'No key'}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: 'rgba(45,216,129,.08)', border: '1px solid rgba(45,216,129,.2)' }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2DD881' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#2DD881' }}>
-            YouTube: Connected (Piped API)
-          </span>
+
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          YouTube: Connected
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div className="mb-5 flex flex-wrap gap-2">
         {(['generate', 'import'] as const).map(t => (
-          <button key={t} onClick={() => { setActiveTab(t); reset() }} style={{
-            padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-            background: activeTab === t ? '#6C63FF' : 'transparent',
-            color: activeTab === t ? '#fff' : '#8B8FA8',
-            border: activeTab === t ? 'none' : '1px solid rgba(255,255,255,.08)',
-          }}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => {
+              setActiveTab(t)
+              reset()
+            }}
+            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+              activeTab === t
+                ? 'bg-indigo-500 text-white'
+                : 'border border-white/10 bg-transparent text-[#A0A3B1] hover:bg-white/5 hover:text-[#EEF0FF]'
+            }`}
+          >
             {t === 'generate' ? '✦ Generate with AI' : '⬇ Import from Platform'}
           </button>
         ))}
       </div>
 
-      {/* GENERATE */}
       {activeTab === 'generate' && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#EEF0FF', marginBottom: 4 }}>Describe your playlist</p>
-          <p style={{ fontSize: 11, color: '#8B8FA8', marginBottom: 14 }}>
-            {hasGroqKey ? 'Groq AI will generate a custom tracklist based on your description' : 'Will use curated fallback tracks (add VITE_GROQ_API_KEY for real AI)'}
+        <div className="mb-4 rounded-3xl border border-white/10 bg-[#11131A] p-5 sm:p-6">
+          <p className="mb-1 text-sm font-bold text-[#EEF0FF]">Describe your playlist</p>
+          <p className="mb-4 text-xs text-[#A0A3B1]">
+            {hasGroqKey
+              ? 'Groq AI will generate a custom tracklist based on your description'
+              : 'Will use curated fallback tracks'}
           </p>
+
           <textarea
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             placeholder="e.g. late night coding lofi, aggressive gym hip-hop, sad indie rainy day..."
             rows={3}
-            style={{ ...inp, resize: 'none', marginBottom: 14 }}
+            className={`${inp} mb-4 resize-none`}
           />
-          <p style={{ fontSize: 11, color: '#494D66', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Quick moods</p>
-          <div style={{ marginBottom: 18 }}>
+
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6B6F85]">
+            Quick moods
+          </p>
+
+          <div className="mb-5">
             {MOODS.map(m => chip(m, selectedMoods.includes(m), () =>
               setSelectedMoods(p => p.includes(m) ? p.filter(x => x !== m) : [...p, m])
             ))}
           </div>
-          <button onClick={handleGenerate} disabled={loading} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            width: '100%', padding: 12, background: loading ? '#4a42cc' : '#6C63FF',
-            border: 'none', borderRadius: 10, color: '#fff', fontSize: 13,
-            fontWeight: 700, fontFamily: "'Manrope',sans-serif",
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}>
-            {loading
-              ? <><Spinner /> Generating...</>
-              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Generate Playlist</>
-            }
+
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? <Spinner /> : <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
+            {loading ? 'Generating...' : 'Generate Playlist'}
           </button>
         </div>
       )}
 
-      {/* IMPORT */}
       {activeTab === 'import' && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#EEF0FF', marginBottom: 4 }}>Import from another platform</p>
-          <p style={{ fontSize: 11, color: '#8B8FA8', marginBottom: 14 }}>
+        <div className="mb-4 rounded-3xl border border-white/10 bg-[#11131A] p-5 sm:p-6">
+          <p className="mb-1 text-sm font-bold text-[#EEF0FF]">Import from another platform</p>
+          <p className="mb-4 text-xs text-[#A0A3B1]">
             Paste a public playlist URL — AI generates equivalent tracks and finds them on YouTube
           </p>
-          <div style={{ marginBottom: 12 }}>
+
+          <div className="mb-4 flex flex-wrap gap-2">
             {PLATFORMS.map(p => chip(p, selectedPlatform === p, () => setSelectedPlatform(p)))}
           </div>
+
           <input
             value={importUrl}
             onChange={e => setImportUrl(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleImport()}
             placeholder={
-              selectedPlatform === 'Spotify' ? 'https://open.spotify.com/playlist/...' :
-              selectedPlatform === 'Apple Music' ? 'https://music.apple.com/playlist/...' :
-              selectedPlatform === 'YouTube Music' ? 'https://music.youtube.com/playlist?list=...' :
-              'https://soundcloud.com/user/sets/...'
+              selectedPlatform === 'Spotify'
+                ? 'https://open.spotify.com/playlist/...'
+                : selectedPlatform === 'Apple Music'
+                  ? 'https://music.apple.com/playlist/...'
+                  : selectedPlatform === 'YouTube Music'
+                    ? 'https://music.youtube.com/playlist?list=...'
+                    : 'https://soundcloud.com/user/sets/...'
             }
-            style={{ ...inp, marginBottom: 8 }}
+            className={`${inp} mb-3`}
           />
-          <p style={{ fontSize: 11, color: '#494D66', marginBottom: 14 }}>
-            ⚠ Only public playlists work. We can't read private playlists.
+
+          <p className="mb-4 text-xs text-[#6B6F85]">
+            Only public playlists work. Private playlists cannot be read.
           </p>
-          <button onClick={handleImport} disabled={loading || !importUrl.trim()} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            width: '100%', padding: 12,
-            background: loading || !importUrl.trim() ? '#1F2233' : '#6C63FF',
-            border: 'none', borderRadius: 10,
-            color: loading || !importUrl.trim() ? '#494D66' : '#fff',
-            fontSize: 13, fontWeight: 700, fontFamily: "'Manrope',sans-serif",
-            cursor: loading || !importUrl.trim() ? 'not-allowed' : 'pointer',
-          }}>
-            {loading ? <><Spinner /> Importing...</> : '⬇ Import Playlist'}
+
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={loading || !importUrl.trim()}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? <Spinner /> : '⬇ Import Playlist'}
           </button>
         </div>
       )}
 
-      {/* Live status log — always visible */}
       {statusLines.length > 0 && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#494D66', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Status Log</p>
-          {statusLines.map((line, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 14, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>
-                {line.type === 'ok' ? '✓' : line.type === 'err' ? '✕' : '›'}
-              </span>
-              <p style={{
-                fontSize: 12, lineHeight: 1.5,
-                color: line.type === 'ok' ? '#2DD881' : line.type === 'err' ? '#FF4D6D' : i === statusLines.length - 1 ? '#8B85FF' : '#494D66',
-              }}>{line.msg}</p>
-            </div>
-          ))}
+        <div className="mb-4 rounded-2xl border border-white/10 bg-[#11131A] p-4">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6B6F85]">
+            Status Log
+          </p>
+          <div className="space-y-2">
+            {statusLines.map((line, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-[1px] text-sm leading-none">
+                  {line.type === 'ok' ? '✓' : line.type === 'err' ? '✕' : '›'}
+                </span>
+                <p
+                  className={`text-xs leading-5 ${
+                    line.type === 'ok'
+                      ? 'text-emerald-400'
+                      : line.type === 'err'
+                        ? 'text-rose-400'
+                        : i === statusLines.length - 1
+                          ? 'text-[#8B85FF]'
+                          : 'text-[#6B6F85]'
+                  }`}
+                >
+                  {line.msg}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Result */}
       {generatedPlaylist && !loading && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+        <div className="rounded-3xl border border-white/10 bg-[#11131A] p-5 sm:p-6">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 18, color: '#EEF0FF' }}>{generatedPlaylist.name}</h3>
-                <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(45,216,129,.1)', color: '#2DD881', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(45,216,129,.2)' }}>
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h3 className="font-serif text-2xl text-[#EEF0FF]">{generatedPlaylist.name}</h3>
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                   {generatedPlaylist.tracks.length} tracks
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: '#8B8FA8' }}>
+              <p className="text-xs text-[#A0A3B1]">
                 {generatedPlaylist.tracks.filter(t => t.youtubeId).length} playable on YouTube
                 {generatedPlaylist.tracks.filter(t => !t.youtubeId).length > 0 &&
                   ` · ${generatedPlaylist.tracks.filter(t => !t.youtubeId).length} not found`}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { onSavePlaylist(generatedPlaylist); setSaved(true) }} disabled={saved}
-                style={{ padding: '8px 16px', background: saved ? 'rgba(45,216,129,.1)' : '#6C63FF', border: saved ? '1px solid rgba(45,216,129,.2)' : 'none', borderRadius: 9, color: saved ? '#2DD881' : '#fff', fontSize: 12, fontWeight: 700, fontFamily: "'Manrope',sans-serif", cursor: saved ? 'default' : 'pointer' }}>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onSavePlaylist(generatedPlaylist)
+                  setSaved(true)
+                }}
+                disabled={saved}
+                className={`rounded-2xl px-4 py-2 text-xs font-bold transition ${
+                  saved
+                    ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                    : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                }`}
+              >
                 {saved ? '✓ Saved' : 'Save to Library'}
               </button>
-              <button onClick={activeTab === 'generate' ? handleGenerate : handleImport}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,.1)', borderRadius: 9, color: '#8B8FA8', fontSize: 12, fontWeight: 600, fontFamily: "'Manrope',sans-serif", cursor: 'pointer' }}>
+
+              <button
+                type="button"
+                onClick={activeTab === 'generate' ? handleGenerate : handleImport}
+                className="rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-xs font-semibold text-[#A0A3B1] transition hover:bg-white/5 hover:text-[#EEF0FF]"
+              >
                 Regenerate
               </button>
             </div>
           </div>
-          {generatedPlaylist.tracks.map((t, i) => (
-            <TrackRow key={t.id} track={t} index={i} isActive={currentTrack?.id === t.id} onPlay={tr => onPlay(tr, generatedPlaylist.tracks)} />
-          ))}
+
+          <div className="space-y-2">
+            {generatedPlaylist.tracks.map((t, i) => (
+              <TrackRow
+                key={t.id}
+                track={t}
+                index={i}
+                isActive={currentTrack?.id === t.id}
+                onPlay={tr => onPlay(tr, generatedPlaylist.tracks)}
+              />
+            ))}
+          </div>
         </div>
       )}
-
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
 
 function Spinner() {
-  return <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .7s linear infinite', flexShrink: 0 }} />
+  return (
+    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+  )
 }
