@@ -10,8 +10,8 @@ interface HomePageProps {
   onNavigate: (page: 'search' | 'import') => void
 }
 
-// Updated to match the "Electric Dreams" / "Midnight City" Synthwave & Indie Vibe
-const FEATURED: Track[] = [
+// Updated to match the "Electric Dreams" Synthwave & Indie Vibe from the screenshot
+const QUICK_PICKS: Track[] = [
   { id: 'y6120QOlsfU', title: 'Midnight City', artist: 'M83', albumArt: 'https://i.ytimg.com/vi/y6120QOlsfU/mqdefault.jpg', duration: 243, youtubeId: 'y6120QOlsfU' },
   { id: 'rDBiqGOytMw', title: 'Sunset', artist: 'The Midnight', albumArt: 'https://i.ytimg.com/vi/rDBiqGOytMw/mqdefault.jpg', duration: 326, youtubeId: 'rDBiqGOytMw' },
   { id: '8GW6sLrK40k', title: 'Resonance', artist: 'HOME', albumArt: 'https://i.ytimg.com/vi/8GW6sLrK40k/mqdefault.jpg', duration: 212, youtubeId: '8GW6sLrK40k' },
@@ -20,7 +20,14 @@ const FEATURED: Track[] = [
   { id: '0AioD3iFv5c', title: 'On the Run', artist: 'Timecop1983', albumArt: 'https://i.ytimg.com/vi/0AioD3iFv5c/mqdefault.jpg', duration: 315, youtubeId: '0AioD3iFv5c' },
 ]
 
-const QUICK_PICKS = FEATURED.slice(0, 6) // Using the first 6 for the top grid
+const FEATURED: Track[] = [
+  { id: 'H5v3kku4y6Q', title: 'Heat Waves', artist: 'Glass Animals', albumArt: 'https://i.ytimg.com/vi/H5v3kku4y6Q/mqdefault.jpg', duration: 238, youtubeId: 'H5v3kku4y6Q' },
+  { id: '6I3smoq1HCs', title: 'Cruel Summer', artist: 'Taylor Swift', albumArt: 'https://i.ytimg.com/vi/6I3smoq1HCs/mqdefault.jpg', duration: 178, youtubeId: '6I3smoq1HCs' },
+  { id: 'PT2_F-1esPk', title: 'Levitating', artist: 'Dua Lipa', albumArt: 'https://i.ytimg.com/vi/PT2_F-1esPk/mqdefault.jpg', duration: 203, youtubeId: 'PT2_F-1esPk' },
+  { id: 'TUVcZfQe-Kw', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.ytimg.com/vi/TUVcZfQe-Kw/mqdefault.jpg', duration: 167, youtubeId: 'TUVcZfQe-Kw' },
+  { id: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234, youtubeId: 'JGwWNGJdvx8' },
+  { id: 'OPf0YbXqDm0', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg', duration: 270, youtubeId: 'OPf0YbXqDm0' },
+]
 
 export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
   const { user } = useAuth()
@@ -51,55 +58,54 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
   const recommendedTracks = ytTracks.length > 0 ? ytTracks : FEATURED
 
   return (
-    // Sonic Obsidian Background: Deep, pitch-black/dark gray
-    <div className="px-4 pb-20 pt-8 sm:px-6 lg:px-8 max-w-[1600px] mx-auto font-sans bg-[#0a0a0a] min-h-screen text-white">
+    <div className="px-4 pb-24 pt-8 sm:px-6 lg:px-8 max-w-[1600px] mx-auto font-sans bg-[#121212] min-h-screen text-white">
       
-      {/* Dynamic Greeting */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Header & Dynamic Greeting */}
+      <div className="mb-8 flex items-end justify-between">
         <h1 className="text-3xl font-bold tracking-tighter text-white sm:text-4xl">
           {greeting}
         </h1>
-        <div className="flex gap-3">
-          <button onClick={() => onNavigate('search')} className="rounded-full bg-[#181818] px-4 py-2 text-sm font-bold text-white hover:bg-[#282828] transition-colors">
+        <div className="hidden sm:flex gap-3">
+          <button onClick={() => onNavigate('search')} className="rounded-full bg-transparent border border-[#727272] px-5 py-2 text-sm font-bold text-white hover:border-white hover:scale-105 transition-all">
             Browse
           </button>
-          <button onClick={() => onNavigate('import')} className="rounded-full bg-[#1ed760] px-4 py-2 text-sm font-bold text-black hover:bg-[#3be477] hover:scale-105 transition-all">
+          <button onClick={() => onNavigate('import')} className="rounded-full bg-[#1ed760] px-5 py-2 text-sm font-bold text-black hover:bg-[#3be477] hover:scale-105 transition-all shadow-[0_4px_12px_rgba(30,215,96,0.3)]">
             Import
           </button>
         </div>
       </div>
 
-      {/* Quick Picks Grid (Matches the "Home Dashboard" screenshot perfectly) */}
-      <div className="mb-10 grid grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Made For You / Quick Picks Grid (Matches the "Home Dashboard" screenshot) */}
+      <div className="mb-12 grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {QUICK_PICKS.map(track => {
           const isPlaying = currentTrack?.id === track.id
           return (
             <div
               key={`quick-${track.id}`}
               onClick={() => onPlay(track, QUICK_PICKS)}
-              className="group relative flex h-16 cursor-pointer items-center overflow-hidden rounded-md bg-[#2a2a2a]/40 transition-all duration-300 hover:bg-[#2a2a2a]"
+              className="group relative flex h-16 sm:h-20 cursor-pointer items-center overflow-hidden rounded-md bg-[#2a2a2a]/60 transition-all duration-300 hover:bg-[#3e3e3e]/80"
             >
               <img
                 src={track.albumArt}
                 alt={track.title}
-                className="h-16 w-16 object-cover shadow-[4px_0_10px_rgba(0,0,0,0.3)]"
+                className="h-16 w-16 sm:h-20 sm:w-20 object-cover shadow-[4px_0_12px_rgba(0,0,0,0.5)]"
               />
               <div className="flex flex-1 items-center justify-between px-4">
-                <p className={`truncate text-sm font-bold tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                <p className={`truncate text-sm sm:text-base font-bold tracking-tight ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
                   {track.title}
                 </p>
                 
                 {/* Floating right play button */}
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-md transition-all duration-300 ease-in-out hover:scale-105 hover:bg-[#3be477] ${
+                <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-xl transition-all duration-300 ease-in-out hover:scale-105 hover:bg-[#3be477] ${
                   isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'
                 }`}>
                   {isPlaying ? (
-                    <div className="flex gap-0.5 items-center justify-center">
-                      <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
-                      <div className="w-1 h-3 bg-black animate-pulse rounded-full delay-75" />
+                    <div className="flex gap-[3px] items-center justify-center">
+                      <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full" />
+                      <div className="w-1 h-3 sm:h-4 bg-black animate-pulse rounded-full delay-75" />
                     </div>
                   ) : (
-                    <svg className="ml-1 h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    <svg className="ml-1 h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   )}
                 </div>
               </div>
@@ -108,10 +114,10 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
         })}
       </div>
 
-      {/* Made For You Section */}
+      {/* Recently Played / Featured Carousels */}
       <div className="mb-12">
-        <h2 className="mb-4 text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
-          Made For You
+        <h2 className="mb-6 text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
+          Recently Played
         </h2>
 
         {/* Hidden scrollbar utilities */}
@@ -122,22 +128,22 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
               <div
                 key={`featured-${track.id}`}
                 onClick={() => onPlay(track, FEATURED)}
-                className={`group relative w-[160px] sm:w-[180px] shrink-0 snap-start cursor-pointer rounded-lg p-3 transition-all duration-300 ${
+                className={`group relative w-[160px] sm:w-[180px] shrink-0 snap-start cursor-pointer rounded-lg p-4 transition-all duration-300 ${
                   isPlaying ? 'bg-[#282828]' : 'bg-[#181818] hover:bg-[#282828]'
                 }`}
               >
-                <div className="relative mb-3 overflow-hidden rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+                <div className="relative mb-4 overflow-hidden rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
                   <img
                     src={track.albumArt}
                     alt={track.title}
-                    className="aspect-square w-full object-cover"
+                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   
                   {/* Floating Play Overlay */}
                   <div className={`absolute bottom-2 right-2 flex items-center justify-center transition-all duration-300 ease-out ${
                     isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
                   }`}>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-lg hover:bg-[#3be477] hover:scale-105 transition-all">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-xl hover:bg-[#3be477] hover:scale-105 transition-all">
                       {isPlaying ? (
                         <div className="flex gap-1 items-center justify-center h-full">
                           <div className="w-1 h-3 bg-black animate-pulse rounded-full" />
@@ -151,10 +157,10 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
                   </div>
                 </div>
 
-                <p className={`mb-1 truncate text-sm font-bold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                <p className={`mb-1 truncate text-base font-bold tracking-tight transition-colors ${isPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
                   {track.title}
                 </p>
-                <p className="truncate text-[13px] font-medium text-[#b3b3b3]">
+                <p className="truncate text-sm font-medium text-[#b3b3b3]">
                   {track.artist}
                 </p>
               </div>
@@ -163,11 +169,11 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
         </div>
       </div>
 
-      {/* Recommended/Trending Section */}
+      {/* Trending Tracks Section */}
       <div>
         <div className="mb-4 flex items-end justify-between">
           <h2 className="text-2xl font-bold tracking-tight text-white hover:underline cursor-pointer inline-block">
-            {ytTracks.length > 0 ? 'Trending Now' : 'Recently Played'}
+            {ytTracks.length > 0 ? 'Trending Now' : 'Popular'}
           </h2>
           
           {ytLoading && (
