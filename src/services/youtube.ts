@@ -34,10 +34,14 @@ const FALLBACK_TRACKS: Track[] = [
   { id: 'lY2yjAdbvdQ', title: 'Dynamite', artist: 'BTS', albumArt: 'https://i.ytimg.com/vi/gdZLi9oWNZg/mqdefault.jpg', duration: 199, youtubeId: 'gdZLi9oWNZg' },
 ]
 
-export async function searchYouTube(query: string, maxResults = 10): Promise<Track[]> {
+export async function searchYouTube(searchQuery: string, maxResults = 10): Promise<Track[]> {
+  const q = searchQuery.toLowerCase().trim()
+  
   // Try backend first
   try {
-    const res = await fetch(`${BACKEND}/api/search?q=${encodeURIComponent(query)}`)
+    const res = await fetch(`${BACKEND}/api/search?q=${encodeURIComponent(q)}`, {
+      signal: AbortSignal.timeout(5000)
+    })
     if (res.ok) {
       const data = await res.json()
       if (data.length > 0) {
@@ -48,15 +52,14 @@ export async function searchYouTube(query: string, maxResults = 10): Promise<Tra
           albumArt: item.albumArt || `https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`,
           duration: item.duration || 0,
           youtubeId: item.youtubeId,
-        }))
+        })).slice(0, maxResults)
       }
     }
   } catch (e) {
-    // Backend not available, use fallback
+    console.warn('Backend search failed:', e)
   }
 
   // Fallback to local database
-  const q = query.toLowerCase().trim()
   const matches = FALLBACK_TRACKS.filter(t => {
     const titleMatch = t.title.toLowerCase().includes(q)
     const artistMatch = t.artist.toLowerCase().includes(q)
