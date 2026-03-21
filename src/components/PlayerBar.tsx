@@ -417,4 +417,7 @@ export default function PlayerBar({
       </div>
     </div>
   </div>
-)}
+      )}
+    </>
+  )
+}
