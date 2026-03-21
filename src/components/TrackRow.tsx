@@ -11,41 +11,47 @@ interface TrackRowProps {
 
 export default function TrackRow({ track, index, isActive, onPlay }: TrackRowProps) {
   const canPlay = !!track.youtubeId
-  
+
   return (
-    <div
+    <button
+      type="button"
       onClick={() => canPlay && onPlay(track)}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '32px 1fr auto',
-        alignItems: 'center',
-        gap: 12,
-        padding: '8px 10px',
-        borderRadius: 10,
-        cursor: canPlay ? 'pointer' : 'not-allowed',
-        background: isActive ? 'rgba(108,99,255,.08)' : 'transparent',
-        transition: 'background .15s',
-        opacity: canPlay ? 1 : 0.5,
-      }}
-      onMouseEnter={e => { if (!isActive && canPlay) e.currentTarget.style.background = '#1F2233' }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-      className="track-row-item"
+      disabled={!canPlay}
+      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+        isActive
+          ? 'bg-[rgba(108,99,255,0.12)]'
+          : canPlay
+            ? 'hover:bg-white/5'
+            : 'cursor-not-allowed opacity-50'
+      }`}
     >
-      <div style={{ textAlign: 'center', position: 'relative' }}>
-        <span style={{ fontSize: 12, color: isActive ? '#6C63FF' : '#494D66' }}>{index + 1}</span>
+      <div className="w-7 shrink-0 text-center text-xs text-[#6B6F85] sm:w-8 sm:text-sm">
+        {index + 1}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <img src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`} alt={track.title} style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} />
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 500, color: isActive ? '#8B85FF' : '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</p>
-          <p style={{ fontSize: 11, color: '#8B8FA8', marginTop: 2 }}>
+
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <img
+          src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
+          alt={track.title}
+          className="h-11 w-11 shrink-0 rounded-lg object-cover sm:h-12 sm:w-12"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className={`truncate text-sm font-medium ${isActive ? 'text-[#8B85FF]' : 'text-[#EEF0FF]'}`}>
+            {track.title}
+          </p>
+
+          <p className="truncate text-xs text-[#A0A3B1]">
             {track.artist}
-            {!canPlay && <span style={{ color: '#f5a623', marginLeft: 6 }}> · Not playable</span>}
-            {track.plays && <span style={{ color: '#494D66' }}> · {track.plays} plays</span>}
+            {!canPlay && <span className="ml-2 text-amber-400">· Not playable</span>}
+            {track.plays && <span className="ml-2 text-[#6B6F85]">· {track.plays} plays</span>}
           </p>
         </div>
       </div>
-      <span style={{ fontSize: 11, color: '#494D66' }}>{formatTime(track.duration)}</span>
-    </div>
+
+      <span className="shrink-0 text-xs text-[#6B6F85] sm:text-sm">
+        {formatTime(track.duration)}
+      </span>
+    </button>
   )
 }
