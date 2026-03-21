@@ -1,36 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
-.link {
-  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition;
-}
-body {
-  @apply bg-[#0a0a0a] text-white;
-}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Base reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-:root {
-  --bg: #080A0F;
-  --bg2: #0E1018;
-  --bg3: #141720;
-  --card: #191C28;
-  --hover: #1F2233;
-  --accent: #6C63FF;
-  --accent2: #8B85FF;
-  --accent-dim: rgba(108, 99, 255, 0.12);
-  --red: #FF4D6D;
-  --green: #2DD881;
-  --t1: #EEF0FF;
-  --t2: #8B8FA8;
-  --tm: #494D66;
-  --border: rgba(255, 255, 255, 0.06);
-  --border2: rgba(255, 255, 255, 0.12);
 }
 
 html, body, #root {
@@ -38,9 +16,10 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* Core theme */
 body {
-  background: var(--bg);
-  color: var(--t1);
+  background: #0a0a0a;
+  color: #ffffff;
   font-family: 'Manrope', sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
@@ -62,28 +41,27 @@ input[type=range] {
   outline: none;
   cursor: pointer;
 }
+
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--t1);
+  background: #fff;
   cursor: pointer;
 }
+
 input[type=range]::-moz-range-thumb {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--t1);
+  background: #fff;
   border: none;
   cursor: pointer;
 }
 
-/* Text inputs */
-input[type=text],
-input[type=email],
-input[type=password],
-textarea {
+/* Inputs */
+input, textarea {
   font-family: 'Manrope', sans-serif;
 }
 
@@ -93,17 +71,13 @@ textarea {
   to   { opacity: 1; transform: none; }
 }
 
+.fade-in {
+  animation: fadeIn 0.2s ease forwards;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 0.7; }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.fade-in {
-  animation: fadeIn 0.2s ease forwards;
 }
 
 .skeleton {
