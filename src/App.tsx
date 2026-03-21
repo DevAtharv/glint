@@ -8,6 +8,17 @@ import LibraryPage from "./pages/LibraryPage"
 import ImportPage from "./pages/ImportPage"
 import AuthPage from "./pages/AuthPage"
 
+const [currentTrack, setCurrentTrack] = useState(null)
+const [isPlaying, setIsPlaying] = useState(false)
+
+const handlePlay = (track) => {
+  setCurrentTrack(track)
+  setIsPlaying(true)
+}
+
+const togglePlay = () => {
+  setIsPlaying(prev => !prev)
+}
 export default function App() {
   return (
     <BrowserRouter>
