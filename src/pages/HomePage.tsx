@@ -10,7 +10,6 @@ interface HomePageProps {
   onNavigate: (page: 'search' | 'import') => void
 }
 
-// All have real youtubeId so audio works immediately
 const FEATURED: Track[] = [
   { id: 'y6120QOlsfU', title: 'Midnight City', artist: 'M83', albumArt: 'https://i.ytimg.com/vi/y6120QOlsfU/mqdefault.jpg', duration: 243, youtubeId: 'y6120QOlsfU' },
   { id: 'Q6_dHMzYBFE', title: 'Nightcall', artist: 'Kavinsky', albumArt: 'https://i.ytimg.com/vi/Q6_dHMzYBFE/mqdefault.jpg', duration: 252, youtubeId: 'Q6_dHMzYBFE' },
@@ -37,76 +36,104 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
   const firstName = (user?.name ?? 'there').split(' ')[0]
 
   useEffect(() => {
-    // Try to load live YouTube results if API key is set
     const key = import.meta.env.VITE_YOUTUBE_API_KEY
     if (!key) return
+
     setYtLoading(true)
-    searchYouTube('trending music 2024', 6).then(tracks => {
-      setYtTracks(tracks)
-      setYtLoading(false)
-    })
+    searchYouTube('trending music 2024', 6)
+      .then(tracks => setYtTracks(tracks))
+      .finally(() => setYtLoading(false))
   }, [])
 
   const recommendedTracks = ytTracks.length > 0 ? ytTracks : RECOMMENDED
 
   return (
-    <div style={{ padding: '0 32px 40px' }}>
-      {/* Hero */}
-      <div style={{ borderRadius: 20, background: 'linear-gradient(135deg,#1a1630 0%,#0f1020 50%,#12182e 100%)', padding: '36px 40px', marginBottom: 32, position: 'relative', overflow: 'hidden', border: '1px solid rgba(108,99,255,.15)' }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(108,99,255,.25) 0%,transparent 70%)' }} />
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: '#8B85FF', textTransform: 'uppercase', marginBottom: 10 }}>Welcome back, {firstName}</p>
-        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 38, lineHeight: 1.1, color: '#EEF0FF', marginBottom: 10 }}>
-          Your music,<br /><em style={{ fontStyle: 'italic', color: '#8B85FF' }}>your way.</em>
-        </h1>
-        <p style={{ fontSize: 13, color: '#8B8FA8', maxWidth: 320, lineHeight: 1.6, marginBottom: 20 }}>
-          Ad-free listening. AI-powered playlists. Import from Spotify & more.
-        </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => onNavigate('import')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', background: '#6C63FF', border: 'none', borderRadius: 10, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'Manrope',sans-serif", cursor: 'pointer' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            Import Playlist
-          </button>
-          <button onClick={() => onNavigate('search')}
-            style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, color: '#8B8FA8', fontSize: 13, fontWeight: 600, fontFamily: "'Manrope',sans-serif", cursor: 'pointer' }}>
-            Browse Music
-          </button>
+    <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+      <div className="mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#1a1630_0%,#0f1020_50%,#12182e_100%)] p-5 sm:p-7 lg:p-10">
+        <div className="relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(108,99,255,0.25)_0%,transparent_70%)] sm:h-56 sm:w-56" />
+
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8B85FF] sm:text-xs">
+            Welcome back, {firstName}
+          </p>
+
+          <h1 className="mb-3 max-w-2xl font-serif text-4xl leading-[1.05] text-[#EEF0FF] sm:text-5xl lg:text-6xl">
+            Your music,<br />
+            <em className="italic text-[#8B85FF]">your way.</em>
+          </h1>
+
+          <p className="mb-5 max-w-md text-sm leading-6 text-[#A0A3B1] sm:text-base">
+            Ad-free listening. AI-powered playlists. Import from Spotify and more.
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={() => onNavigate('import')}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-600"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Import Playlist
+            </button>
+
+            <button
+              onClick={() => onNavigate('search')}
+              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-transparent px-5 py-3 text-sm font-semibold text-[#A0A3B1] transition hover:bg-white/5 hover:text-[#EEF0FF]"
+            >
+              Browse Music
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Featured / Recently Played */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 20, color: '#EEF0FF' }}>Featured</h2>
+      <div className="mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-serif text-xl text-[#EEF0FF] sm:text-2xl">Featured</h2>
         </div>
-        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 4 }}>
+
+        <div className="flex gap-4 overflow-x-auto pb-2">
           {FEATURED.map(track => (
-            <div key={track.id} onClick={() => onPlay(track, FEATURED)}
-              style={{ flexShrink: 0, width: 150, background: currentTrack?.id === track.id ? 'rgba(108,99,255,.12)' : '#141720', border: `1px solid ${currentTrack?.id === track.id ? 'rgba(108,99,255,.3)' : 'rgba(255,255,255,.06)'}`, borderRadius: 14, padding: 14, cursor: 'pointer', transition: 'all .2s' }}
-              onMouseEnter={e => { if (currentTrack?.id !== track.id) e.currentTarget.style.borderColor = 'rgba(255,255,255,.14)' }}
-              onMouseLeave={e => { if (currentTrack?.id !== track.id) e.currentTarget.style.borderColor = 'rgba(255,255,255,.06)' }}
+            <div
+              key={track.id}
+              onClick={() => onPlay(track, FEATURED)}
+              className={`w-[160px] shrink-0 cursor-pointer rounded-2xl border p-3 transition ${
+                currentTrack?.id === track.id
+                  ? 'border-indigo-500/30 bg-[rgba(108,99,255,0.12)]'
+                  : 'border-white/10 bg-[#11131A] hover:bg-[#171923]'
+              }`}
             >
-              <img src={track.albumArt} alt={track.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 9, display: 'block', marginBottom: 10 }} />
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#EEF0FF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{track.title}</p>
-              <p style={{ fontSize: 11, color: '#8B8FA8' }}>{track.artist}</p>
+              <img
+                src={track.albumArt}
+                alt={track.title}
+                className="mb-3 aspect-video w-full rounded-xl object-cover"
+              />
+              <p className="mb-1 truncate text-sm font-semibold text-[#EEF0FF]">{track.title}</p>
+              <p className="truncate text-xs text-[#A0A3B1]">{track.artist}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Recommended */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 20, color: '#EEF0FF' }}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-serif text-xl text-[#EEF0FF] sm:text-2xl">
             {ytTracks.length > 0 ? 'Trending Now' : 'Recommended'}
           </h2>
-          {ytLoading && <span style={{ fontSize: 12, color: '#494D66' }}>Loading from YouTube...</span>}
+          {ytLoading && <span className="text-xs text-[#6B6F85]">Loading from YouTube...</span>}
         </div>
-        {recommendedTracks.map((track, i) => (
-          <TrackRow key={track.id} track={track} index={i}
-            isActive={currentTrack?.id === track.id}
-            onPlay={t => onPlay(t, recommendedTracks)} />
-        ))}
+
+        <div className="space-y-2">
+          {recommendedTracks.map((track, i) => (
+            <TrackRow
+              key={track.id}
+              track={track}
+              index={i}
+              isActive={currentTrack?.id === track.id}
+              onPlay={t => onPlay(t, recommendedTracks)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
