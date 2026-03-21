@@ -14,9 +14,15 @@
   --bg: #121212;
   --surface: #181818;
   --surface-2: #242424;
-  --primary: #1DB954;
-  --text: #FFFFFF;
-  --text-secondary: #B3B3B3;
+  --surface-3: #2a2a2a;
+  --primary: #1db954;
+  --primary-2: #1ed760;
+  --text: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted: #8f8f8f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 html, body, #root {
@@ -26,7 +32,7 @@ html, body, #root {
 
 body {
   background: var(--bg);
-  color: var(--t1);
+  color: var(--text);
   font-family: 'Manrope', sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
@@ -46,10 +52,15 @@ a {
   text-decoration: none;
 }
 
+::selection {
+  background: rgba(29, 185, 84, 0.3);
+  color: #ffffff;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -57,12 +68,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Range inputs */
@@ -70,7 +81,7 @@ input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   height: 3px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   outline: none;
   cursor: pointer;
@@ -78,7 +89,7 @@ input[type='range'] {
 
 input[type='range']::-webkit-slider-runnable-track {
   height: 3px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
 
@@ -87,7 +98,7 @@ input[type='range']::-webkit-slider-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #eef0ff;
+  background: #ffffff;
   margin-top: -4.5px;
   cursor: pointer;
   border: none;
@@ -95,7 +106,7 @@ input[type='range']::-webkit-slider-thumb {
 
 input[type='range']::-moz-range-track {
   height: 3px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
 
@@ -103,7 +114,7 @@ input[type='range']::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #eef0ff;
+  background: #ffffff;
   border: none;
   cursor: pointer;
 }
@@ -119,24 +130,25 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(160, 163, 177, 0.7);
+  color: rgba(179, 179, 179, 0.7);
 }
 
-/* App helpers */
+/* Helpers */
 .fade-in {
   animation: fadeIn 0.22s ease forwards;
 }
 
 .skeleton {
   animation: pulse 1.5s ease-in-out infinite;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
 
 .card {
-  background: var(--bg2);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
+  box-shadow: var(--shadow);
 }
 
 .card-hover {
@@ -144,8 +156,8 @@ textarea::placeholder {
 }
 
 .card-hover:hover {
-  background: var(--bg3);
-  border-color: var(--border2);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
 }
 
 .glint-scroll {
@@ -153,7 +165,6 @@ textarea::placeholder {
   scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-/* Better mobile spacing helpers */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
