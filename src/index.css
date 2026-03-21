@@ -1,87 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base reset */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
-  overflow: hidden;
+  margin: 0;
 }
 
-/* Core theme */
 body {
-  background: #0a0a0a;
-  color: #ffffff;
-  font-family: 'Manrope', sans-serif;
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Scrollbars */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.15); }
-
-/* Range inputs */
-input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 3px;
-  background: rgba(255,255,255,.08);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-}
-
-input[type=range]::-moz-range-thumb {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-/* Inputs */
-input, textarea {
-  font-family: 'Manrope', sans-serif;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
-}
-
-.fade-in {
-  animation: fadeIn 0.2s ease forwards;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.7; }
-}
-
-.skeleton {
-  animation: pulse 1.5s ease-in-out infinite;
-  background: rgba(255,255,255,.04);
-  border-radius: 8px;
+  background: #09090b;
+  color: white;
+  font-family: Arial, sans-serif;
 }
