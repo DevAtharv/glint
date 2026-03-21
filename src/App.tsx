@@ -1,54 +1,76 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
-import Sidebar from "./components/Sidebar"
-import PlayerBar from "./components/PlayerBar"
+import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom"
 
-import HomePage from "./pages/HomePage"
-import SearchPage from "./pages/SearchPage"
-import LibraryPage from "./pages/LibraryPage"
-import ImportPage from "./pages/ImportPage"
-import AuthPage from "./pages/AuthPage"
-
-const [currentTrack, setCurrentTrack] = useState(null)
-const [isPlaying, setIsPlaying] = useState(false)
-
-const handlePlay = (track) => {
-  setCurrentTrack(track)
-  setIsPlaying(true)
+function HomePage() {
+  return <div className="p-6 text-white">Home</div>
 }
 
-const togglePlay = () => {
-  setIsPlaying(prev => !prev)
+function SearchPage() {
+  return <div className="p-6 text-white">Search</div>
 }
+
+function LibraryPage() {
+  return <div className="p-6 text-white">Library</div>
+}
+
+function ImportPage() {
+  return <div className="p-6 text-white">Import</div>
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex h-screen bg-gradient-to-b from-[#0a0a0a] to-black text-white overflow-hidden">
-        <Sidebar />
+      <div className="min-h-screen bg-zinc-950 text-white flex">
+        <aside className="w-64 border-r border-zinc-800 p-4">
+          <div className="text-2xl font-bold text-green-400 mb-8">Glint</div>
 
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="h-16 px-6 flex items-center justify-between border-b border-zinc-800 bg-black/40 backdrop-blur-md">
-            <input
-              placeholder="Search anything..."
-              className="bg-zinc-900 px-4 py-2 rounded-full w-80 max-w-full outline-none border border-zinc-800 focus:border-green-500"
-            />
-            <div className="flex gap-4 text-zinc-400">
-              <span>🔔</span>
-              <span>⚙️</span>
-            </div>
-          </div>
+          <nav className="flex flex-col gap-2">
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-2 ${isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900"}`
+              }
+            >
+              Home
+            </NavLink>
 
-          <div className="flex-1 overflow-y-auto p-8 pb-28 space-y-10">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/library" element={<LibraryPage />} />
-              <Route path="/import" element={<ImportPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-            </Routes>
-          </div>
-        </div>
+            <NavLink
+              to="/search"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-2 ${isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900"}`
+              }
+            >
+              Search
+            </NavLink>
 
-        <PlayerBar />
+            <NavLink
+              to="/library"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-2 ${isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900"}`
+              }
+            >
+              Library
+            </NavLink>
+
+            <NavLink
+              to="/import"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-2 ${isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900"}`
+              }
+            >
+              Import
+            </NavLink>
+          </nav>
+        </aside>
+
+        <main className="flex-1 p-6">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
       </div>
     </BrowserRouter>
   )
