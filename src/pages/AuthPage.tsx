@@ -20,13 +20,14 @@ export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
     setError('')
     setSuccess('')
     setLoading(true)
+
     try {
       if (mode === 'login') {
         await signIn(email, password)
         onAuth()
       } else {
         await signUp(email, password, name)
-        setSuccess('Account created! Check your email to confirm, then log in.')
+        setSuccess('Account created. Check your email to confirm, then sign in.')
         setMode('login')
       }
     } catch (err: unknown) {
@@ -37,95 +38,128 @@ export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', background: '#080A0F',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Manrope', sans-serif",
-    }}>
-      <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: '#6C63FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    <div className="min-h-screen bg-[#0B0D12] px-4 py-8 text-[#EEF0FF] sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md items-center justify-center">
+        <div className="w-full">
+          <div className="mb-8 text-center">
+            <div className="mb-3 inline-flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                </svg>
+              </div>
+
+              <span className="font-serif text-3xl text-[#EEF0FF]">
+                Gl<em className="italic text-[#8B85FF]">i</em>nt
+              </span>
             </div>
-            <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 28, color: '#EEF0FF' }}>
-              Gl<em style={{ fontStyle: 'italic', color: '#8B85FF' }}>i</em>nt
-            </span>
+
+            <p className="text-sm text-[#A0A3B1]">Ad-free music powered by AI</p>
           </div>
-          <p style={{ fontSize: 13, color: '#8B8FA8' }}>Ad-free music powered by AI</p>
-        </div>
 
-        {/* Demo mode banner */}
-        {isDemo && (
-          <div style={{ background: 'rgba(245,166,35,.08)', border: '1px solid rgba(245,166,35,.2)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 12, color: '#f5a623', lineHeight: 1.5 }}>
-            <strong>Demo mode</strong> — Supabase not configured yet.<br/>
-            Add your keys to <code style={{ background: 'rgba(0,0,0,.3)', padding: '1px 6px', borderRadius: 4 }}>.env</code> to enable real auth.{' '}
-            <span style={{ textDecoration: 'underline', cursor: 'pointer' }} onClick={onAuth}>
-              Continue as guest →
-            </span>
-          </div>
-        )}
-
-        {/* Card */}
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 20, padding: 32 }}>
-          <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: '#EEF0FF', marginBottom: 24, textAlign: 'center' }}>
-            {mode === 'login' ? 'Welcome back' : 'Create account'}
-          </h2>
-
-          {error && (
-            <div style={{ background: 'rgba(255,77,109,.1)', border: '1px solid rgba(255,77,109,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#FF4D6D' }}>
-              {error}
-            </div>
-          )}
-          {success && (
-            <div style={{ background: 'rgba(45,216,129,.1)', border: '1px solid rgba(45,216,129,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#2DD881' }}>
-              {success}
+          {isDemo && (
+            <div className="mb-5 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs leading-5 text-amber-300">
+              <strong className="block">Demo mode</strong>
+              Supabase not configured yet.
+              <button
+                type="button"
+                onClick={onAuth}
+                className="mt-2 block text-left font-semibold underline underline-offset-2"
+              >
+                Continue as guest →
+              </button>
             </div>
           )}
 
-          <form onSubmit={handle}>
-            {mode === 'register' && (
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, color: '#8B8FA8', marginBottom: 6, fontWeight: 600 }}>Name</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required
-                  style={{ width: '100%', background: '#141720', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '11px 14px', color: '#EEF0FF', fontSize: 14, fontFamily: "'Manrope',sans-serif", outline: 'none' }}
-                />
+          <div className="rounded-3xl border border-white/10 bg-[#11131A] p-5 shadow-2xl sm:p-6">
+            <h2 className="mb-6 text-center font-serif text-2xl text-[#EEF0FF]">
+              {mode === 'login' ? 'Welcome back' : 'Create account'}
+            </h2>
+
+            {error && (
+              <div className="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+                {error}
               </div>
             )}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#8B8FA8', marginBottom: 6, fontWeight: 600 }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
-                style={{ width: '100%', background: '#141720', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '11px 14px', color: '#EEF0FF', fontSize: 14, fontFamily: "'Manrope',sans-serif", outline: 'none' }}
-              />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#8B8FA8', marginBottom: 6, fontWeight: 600 }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6}
-                style={{ width: '100%', background: '#141720', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '11px 14px', color: '#EEF0FF', fontSize: 14, fontFamily: "'Manrope',sans-serif", outline: 'none' }}
-              />
-            </div>
-            <button type="submit" disabled={loading}
-              style={{ width: '100%', background: loading ? '#4a42cc' : '#6C63FF', border: 'none', borderRadius: 10, padding: '13px', color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: "'Manrope',sans-serif", cursor: loading ? 'not-allowed' : 'pointer' }}
-            >
-              {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
 
-          <p style={{ textAlign: 'center', fontSize: 13, color: '#8B8FA8', marginTop: 20 }}>
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <span onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setSuccess('') }}
-              style={{ color: '#8B85FF', cursor: 'pointer', fontWeight: 600 }}>
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-            </span>
-          </p>
+            {success && (
+              <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+                {success}
+              </div>
+            )}
 
-          {/* Always show guest option */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', marginTop: 20, paddingTop: 16, textAlign: 'center' }}>
-            <button onClick={onAuth}
-              style={{ background: 'none', border: 'none', color: '#494D66', fontSize: 12, cursor: 'pointer', fontFamily: "'Manrope',sans-serif" }}>
-              Continue without account →
-            </button>
+            <form onSubmit={handle} className="space-y-4">
+              {mode === 'register' && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-[#A0A3B1]">Name</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Your name"
+                    required
+                    className="w-full rounded-2xl border border-white/10 bg-[#171923] px-4 py-3 text-sm text-[#EEF0FF] outline-none transition placeholder:text-[#6B6F85] focus:border-indigo-500/50"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-[#A0A3B1]">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full rounded-2xl border border-white/10 bg-[#171923] px-4 py-3 text-sm text-[#EEF0FF] outline-none transition placeholder:text-[#6B6F85] focus:border-indigo-500/50"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-[#A0A3B1]">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="w-full rounded-2xl border border-white/10 bg-[#171923] px-4 py-3 text-sm text-[#EEF0FF] outline-none transition placeholder:text-[#6B6F85] focus:border-indigo-500/50"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            </form>
+
+            <p className="mt-5 text-center text-sm text-[#A0A3B1]">
+              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'login' ? 'register' : 'login')
+                  setError('')
+                  setSuccess('')
+                }}
+                className="font-semibold text-[#8B85FF]"
+              >
+                {mode === 'login' ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+
+            <div className="mt-5 border-t border-white/10 pt-4 text-center">
+              <button
+                type="button"
+                onClick={onAuth}
+                className="text-xs text-[#6B6F85] transition hover:text-[#A0A3B1]"
+              >
+                Continue without account →
+              </button>
+            </div>
           </div>
         </div>
       </div>
