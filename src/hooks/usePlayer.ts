@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import type { Track } from '../types'
 
 export function usePlayer() {
@@ -16,10 +16,13 @@ export function usePlayer() {
 
   const currentTrack = queue[currentIndex] ?? null
 
-  const handleProgress = useCallback((secs: number) => {
-    setCurrentSecs(secs)
-    setProgress(duration > 0 ? (secs / duration) * 100 : 0)
-  }, [duration])
+  const handleProgress = useCallback(
+    (secs: number) => {
+      setCurrentSecs(secs)
+      setProgress(duration > 0 ? (secs / duration) * 100 : 0)
+    },
+    [duration]
+  )
 
   const handleDuration = useCallback((secs: number) => {
     setDuration(secs)
@@ -31,23 +34,24 @@ export function usePlayer() {
       setIsPlaying(true)
       return
     }
-    // Auto advance queue
-    setQueue(q => {
-      if (!q.length) return q
-      const nextIdx = shuffle
-        ? Math.floor(Math.random() * q.length)
-        : (queue.indexOf(q[currentIndex]) + 1) % q.length
-      setCurrentIndex(nextIdx)
-      setCurrentSecs(0)
-      setProgress(0)
-      setIsPlaying(true)
-      return q
-    })
+
+    if (!queue.length) return
+
+    const nextIdx = shuffle
+      ? Math.floor(Math.random() * queue.length)
+      : (currentIndex + 1) % queue.length
+
+    setCurrentIndex(nextIdx)
+    setCurrentSecs(0)
+    setProgress(0)
+    setIsPlaying(true)
+    setSeekTo(null)
   }, [repeat, shuffle, queue, currentIndex])
 
   const playTrack = useCallback((track: Track, newQueue?: Track[]) => {
     const q = newQueue ?? [track]
     const idx = q.findIndex(t => t.id === track.id)
+
     setQueue(q)
     setCurrentIndex(idx >= 0 ? idx : 0)
     setCurrentSecs(0)
@@ -58,20 +62,27 @@ export function usePlayer() {
     setSeekTo(null)
   }, [])
 
-  const togglePlay = useCallback(() => setIsPlaying(p => !p), [])
+  const togglePlay = useCallback(() => {
+    setIsPlaying(p => !p)
+  }, [])
 
-  const seek = useCallback((pct: number) => {
-    const secs = Math.floor((pct / 100) * duration)
-    setProgress(pct)
-    setCurrentSecs(secs)
-    setSeekTo(secs)
-  }, [duration])
+  const seek = useCallback(
+    (pct: number) => {
+      const secs = Math.floor((pct / 100) * duration)
+      setProgress(pct)
+      setCurrentSecs(secs)
+      setSeekTo(secs)
+    },
+    [duration]
+  )
 
   const next = useCallback(() => {
     if (!queue.length) return
+
     const nextIdx = shuffle
       ? Math.floor(Math.random() * queue.length)
       : (currentIndex + 1) % queue.length
+
     setCurrentIndex(nextIdx)
     setCurrentSecs(0)
     setProgress(0)
@@ -80,7 +91,13 @@ export function usePlayer() {
   }, [queue, currentIndex, shuffle])
 
   const prev = useCallback(() => {
-    if (currentSecs > 3) { seek(0); return }
+    if (!queue.length) return
+
+    if (currentSecs > 3) {
+      seek(0)
+      return
+    }
+
     const prevIdx = (currentIndex - 1 + queue.length) % queue.length
     setCurrentIndex(prevIdx)
     setCurrentSecs(0)
@@ -90,10 +107,28 @@ export function usePlayer() {
   }, [currentIndex, queue.length, currentSecs, seek])
 
   return {
-    currentTrack, queue, isPlaying, progress, currentSecs, duration,
-    shuffle, repeat, liked, volume, seekTo,
-    playTrack, togglePlay, seek, next, prev,
-    setShuffle, setRepeat, setLiked, setVolume,
-    handleProgress, handleDuration, handleEnded,
+    currentTrack,
+    queue,
+    isPlaying,
+    progress,
+    currentSecs,
+    duration,
+    shuffle,
+    repeat,
+    liked,
+    volume,
+    seekTo,
+    playTrack,
+    togglePlay,
+    seek,
+    next,
+    prev,
+    setShuffle,
+    setRepeat,
+    setLiked,
+    setVolume,
+    handleProgress,
+    handleDuration,
+    handleEnded,
   }
 }
