@@ -26,7 +26,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 pb-28">
+          <div className="flex-1 overflow-y-auto p-8 pb-28 space-y-10">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
