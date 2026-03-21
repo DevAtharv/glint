@@ -1,8 +1,7 @@
 import type { Track } from '../types'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || 'http://localhost:3001'
+const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
 
-// Real YouTube video IDs for fallback
 const FALLBACK_TRACKS: Track[] = [
   { id: 'fHI8X4OXluQ', title: 'Blinding Lights', artist: 'The Weeknd', albumArt: 'https://i.ytimg.com/vi/fHI8X4OXluQ/mqdefault.jpg', duration: 200, youtubeId: 'fHI8X4OXluQ' },
   { id: 'JGwWNGJdvx8', title: 'Shape of You', artist: 'Ed Sheeran', albumArt: 'https://i.ytimg.com/vi/JGwWNGJdvx8/mqdefault.jpg', duration: 234, youtubeId: 'JGwWNGJdvx8' },
@@ -30,44 +29,81 @@ const FALLBACK_TRACKS: Track[] = [
   { id: 'fKopy74weus', title: 'Thunder', artist: 'Imagine Dragons', albumArt: 'https://i.ytimg.com/vi/fKopy74weus/mqdefault.jpg', duration: 187, youtubeId: 'fKopy74weus' },
   { id: '7wtfhZwyrcc', title: 'Believer', artist: 'Imagine Dragons', albumArt: 'https://i.ytimg.com/vi/7wtfhZwyrcc/mqdefault.jpg', duration: 204, youtubeId: '7wtfhZwyrcc' },
   { id: 'm7Bc3pLyij0', title: 'Happier', artist: 'Marshmello', albumArt: 'https://i.ytimg.com/vi/m7Bc3pLyij0/mqdefault.jpg', duration: 214, youtubeId: 'm7Bc3pLyij0' },
-  { id: 'RgKAFK5djSk', title: 'Faded', artist: 'Alan Walker', albumArt: 'https://i.ytimg.com/vi/60ItHLz5WEA/mqdefault.jpg', duration: 212, youtubeId: '60ItHLz5WEA' },
-  { id: 'lY2yjAdbvdQ', title: 'Dynamite', artist: 'BTS', albumArt: 'https://i.ytimg.com/vi/gdZLi9oWNZg/mqdefault.jpg', duration: 199, youtubeId: 'gdZLi9oWNZg' },
+  { id: '60ItHLz5WEA', title: 'Faded', artist: 'Alan Walker', albumArt: 'https://i.ytimg.com/vi/60ItHLz5WEA/mqdefault.jpg', duration: 212, youtubeId: '60ItHLz5WEA' },
+  { id: 'gdZLi9oWNZg', title: 'Dynamite', artist: 'BTS', albumArt: 'https://i.ytimg.com/vi/gdZLi9oWNZg/mqdefault.jpg', duration: 199, youtubeId: 'gdZLi9oWNZg' },
 ]
 
-export async function searchYouTube(searchQuery: string, maxResults = 10): Promise<Track[]> {
-  const q = searchQuery.toLowerCase().trim()
-  
-  // Try backend first
-  try {
-    const res = await fetch(`${BACKEND}/api/search?q=${encodeURIComponent(q)}`, {
-      signal: AbortSignal.timeout(5000)
-    })
-    if (res.ok) {
-      const data = await res.json()
-      if (data.length > 0) {
-        return data.map((item: any) => ({
-          id: item.youtubeId,
-          title: item.title,
-          artist: item.artist,
-          albumArt: item.albumArt || `https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`,
-          duration: item.duration || 0,
-          youtubeId: item.youtubeId,
-        })).slice(0, maxResults)
-      }
-    }
-  } catch (e) {
-    console.warn('Backend search failed:', e)
+function normalize(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .replace(/\bofficial\b|\audi[o]?|\video\b|\lyrics?\b|\mv\b|\remaster(ed)?\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function scoreTrack(query: string, track: Track): number {
+  const q = normalize(query)
+  const title = normalize(track.title)
+  const artist = normalize(track.artist)
+
+  let score = 0
+  if (q === title) score += 100
+  if (q.includes(title)) score += 40
+  if (title.includes(q)) score += 35
+  if (q.includes(artist)) score += 25
+  if (artist && q.includes(artist)) score += 20
+
+  const qWords = q.split(' ').filter(Boolean)
+  const titleWords = title.split(' ').filter(Boolean)
+  const artistWords = artist.split(' ').filter(Boolean)
+
+  for (const w of qWords) {
+    if (titleWords.includes(w)) score += 8
+    if (artistWords.includes(w)) score += 4
   }
 
-  // Fallback to local database
-  const matches = FALLBACK_TRACKS.filter(t => {
-    const titleMatch = t.title.toLowerCase().includes(q)
-    const artistMatch = t.artist.toLowerCase().includes(q)
-    const combined = `${t.title} ${t.artist}`.toLowerCase().includes(q)
-    return titleMatch || artistMatch || combined
-  })
-  
-  return matches.length > 0 ? matches.slice(0, maxResults) : FALLBACK_TRACKS.slice(0, maxResults)
+  return score
+}
+
+export async function searchYouTube(searchQuery: string, maxResults = 10): Promise<Track[]> {
+  const q = searchQuery.trim()
+  if (!q) return FALLBACK_TRACKS.slice(0, maxResults)
+
+  try {
+    if (BACKEND) {
+      const res = await fetch(`${BACKEND}/api/search?q=${encodeURIComponent(q)}&limit=${maxResults}`, {
+        signal: AbortSignal.timeout(5000),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          return data
+            .map((item: any) => ({
+              id: item.youtubeId || item.id || `${item.title}-${item.artist}`,
+              title: item.title,
+              artist: item.artist,
+              albumArt: item.albumArt || `https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`,
+              duration: item.duration || 0,
+              youtubeId: item.youtubeId,
+            }))
+            .slice(0, maxResults)
+        }
+      }
+    }
+  } catch {
+    // fall through to local fallback
+  }
+
+  const scored = FALLBACK_TRACKS
+    .map(track => ({ track, score: scoreTrack(q, track) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.track)
+
+  return scored.length > 0 ? scored.slice(0, maxResults) : FALLBACK_TRACKS.slice(0, maxResults)
 }
 
 export async function getStreamUrl(videoId: string): Promise<string | null> {
