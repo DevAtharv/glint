@@ -83,8 +83,7 @@ export default function PlayerBar({
         )}
 
         <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:px-6 lg:grid-cols-[minmax(240px,320px)_1fr_minmax(220px,280px)] lg:items-center">
-          {/* Left */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
             <img
               src={track.albumArt || 'https://placehold.co/96x96/png'}
               alt={track.title}
@@ -92,12 +91,8 @@ export default function PlayerBar({
             />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">
-                {track.title}
-              </p>
-              <p className="truncate text-xs text-gray-400">
-                {track.artist}
-              </p>
+              <p className="truncate text-sm font-semibold text-white">{track.title}</p>
+              <p className="truncate text-xs text-gray-400">{track.artist}</p>
             </div>
 
             <button
@@ -118,15 +113,12 @@ export default function PlayerBar({
             </button>
           </div>
 
-          {/* Center */}
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-3 sm:gap-4">
               <button
                 onClick={onShuffle}
                 aria-label="Shuffle"
-                className={`rounded-full p-2 transition hover:bg-white/5 ${
-                  shuffle ? 'opacity-100' : 'opacity-50'
-                }`}
+                className={`rounded-full p-2 transition hover:bg-white/5 ${shuffle ? 'opacity-100' : 'opacity-50'}`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={shuffle ? '#1DB954' : '#8B8FA8'}>
                   <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
@@ -172,9 +164,7 @@ export default function PlayerBar({
               <button
                 onClick={onRepeat}
                 aria-label="Repeat"
-                className={`rounded-full p-2 transition hover:bg-white/5 ${
-                  repeat ? 'opacity-100' : 'opacity-50'
-                }`}
+                className={`rounded-full p-2 transition hover:bg-white/5 ${repeat ? 'opacity-100' : 'opacity-50'}`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={repeat ? '#1DB954' : '#8B8FA8'}>
                   <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
@@ -203,7 +193,6 @@ export default function PlayerBar({
             </div>
           </div>
 
-          {/* Right */}
           <div className="flex items-center justify-between gap-3 lg:justify-end">
             <button
               onClick={() => setShowOptions(v => !v)}
