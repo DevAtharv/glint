@@ -50,100 +50,59 @@ export default function EditPlaylistPage({ playlist, onSave, onBack, onPlay, cur
   }
 
   return (
-    <div style={{ padding: '0 32px 32px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+    <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <button
+          type="button"
           onClick={onBack}
-          style={{
-            background: 'rgba(255,255,255,.05)',
-            border: '1px solid rgba(255,255,255,.06)',
-            borderRadius: 8,
-            width: 36,
-            height: 36,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition hover:bg-white/10"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#8B8FA8">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#A0A3B1">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
           </svg>
         </button>
-        <div style={{ flex: 1 }}>
+
+        <div className="min-w-0 flex-1">
           {editing ? (
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: '2px solid #6C63FF',
-                color: '#EEF0FF',
-                fontSize: 22,
-                fontFamily: "'Instrument Serif', serif",
-                outline: 'none',
-                width: '100%',
-                paddingBottom: 4,
-              }}
+              className="w-full border-b-2 border-indigo-500 bg-transparent pb-1 font-serif text-3xl text-[#EEF0FF] outline-none"
               autoFocus
             />
           ) : (
-            <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: '#EEF0FF' }}>{name}</h2>
+            <h2 className="font-serif text-3xl text-[#EEF0FF]">{name}</h2>
           )}
-          <p style={{ fontSize: 12, color: '#8B8FA8', marginTop: 4 }}>{tracks.length} tracks</p>
+          <p className="mt-1 text-sm text-[#A0A3B1]">{tracks.length} tracks</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        <div className="flex flex-wrap gap-2">
           {editing ? (
             <>
               <button
-                onClick={() => { setName(playlist.name); setTracks([...playlist.tracks]); setEditing(false) }}
-                style={{
-                  padding: '8px 16px',
-                  background: 'rgba(255,255,255,.05)',
-                  border: '1px solid rgba(255,255,255,.06)',
-                  borderRadius: 8,
-                  color: '#8B8FA8',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                type="button"
+                onClick={() => {
+                  setName(playlist.name)
+                  setTracks([...playlist.tracks])
+                  setEditing(false)
                 }}
+                className="rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-[#A0A3B1] transition hover:bg-white/5 hover:text-[#EEF0FF]"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSave}
-                style={{
-                  padding: '8px 16px',
-                  background: '#6C63FF',
-                  border: 'none',
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-600"
               >
                 Save Changes
               </button>
             </>
           ) : (
             <button
+              type="button"
               onClick={() => setEditing(true)}
-              style={{
-                padding: '8px 16px',
-                background: '#6C63FF',
-                border: 'none',
-                borderRadius: 8,
-                color: '#fff',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
+              className="flex items-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-600"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
@@ -154,23 +113,11 @@ export default function EditPlaylistPage({ playlist, onSave, onBack, onPlay, cur
         </div>
       </div>
 
-      {/* Play All Button */}
-      <div style={{ marginBottom: 20 }}>
+      <div className="mb-5">
         <button
+          type="button"
           onClick={() => tracks.length > 0 && onPlay(tracks[0], tracks)}
-          style={{
-            padding: '12px 24px',
-            background: '#6C63FF',
-            border: 'none',
-            borderRadius: 25,
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
+          className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-6 py-3 text-sm font-bold text-white transition hover:bg-indigo-600"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
             <path d="M8 5v14l11-7z" />
@@ -179,165 +126,100 @@ export default function EditPlaylistPage({ playlist, onSave, onBack, onPlay, cur
         </button>
       </div>
 
-      {/* Track List */}
-      <div style={{ background: '#141720', borderRadius: 14, border: '1px solid rgba(255,255,255,.06)', overflow: 'hidden' }}>
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#11131A]">
         {tracks.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p style={{ fontSize: 14, color: '#8B8FA8' }}>No tracks in this playlist</p>
-            <p style={{ fontSize: 12, color: '#494D66', marginTop: 6 }}>Import songs from Spotify to add tracks</p>
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm text-[#A0A3B1]">No tracks in this playlist</p>
+            <p className="mt-2 text-xs text-[#6B6F85]">Import songs from Spotify to add tracks</p>
           </div>
         ) : (
-          tracks.map((track, index) => (
-            <div
-              key={`${track.id}-${index}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 16px',
-                borderBottom: index < tracks.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
-                background: currentTrack?.id === track.id ? 'rgba(108,99,255,.08)' : 'transparent',
-                transition: 'background .15s',
-              }}
-              onMouseEnter={e => { if (currentTrack?.id !== track.id) e.currentTarget.style.background = 'rgba(255,255,255,.03)' }}
-              onMouseLeave={e => { if (currentTrack?.id !== track.id) e.currentTarget.style.background = 'transparent' }}
-            >
-              {/* Track Number / Play Button */}
-              <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
-                {editing ? (
-                  <span style={{ fontSize: 12, color: '#494D66' }}>{index + 1}</span>
-                ) : (
-                  <button
-                    onClick={() => onPlay(track, tracks)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 32,
-                    }}
-                  >
-                    {currentTrack?.id === track.id ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#6C63FF">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          <div className="divide-y divide-white/5">
+            {tracks.map((track, index) => (
+              <div
+                key={`${track.id}-${index}`}
+                className={`flex items-center gap-3 px-4 py-3 transition ${
+                  currentTrack?.id === track.id ? 'bg-[rgba(108,99,255,0.08)]' : 'hover:bg-white/5'
+                }`}
+              >
+                <div className="w-8 shrink-0 text-center">
+                  {editing ? (
+                    <span className="text-xs text-[#6B6F85]">{index + 1}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onPlay(track, tracks)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/5"
+                    >
+                      {currentTrack?.id === track.id ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#8B85FF">
+                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#6B6F85">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                <img
+                  src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
+                  alt={track.title}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-sm font-semibold ${currentTrack?.id === track.id ? 'text-[#8B85FF]' : 'text-[#EEF0FF]'}`}>
+                    {track.title}
+                  </p>
+                  <p className="truncate text-xs text-[#A0A3B1]">{track.artist}</p>
+                </div>
+
+                {editing && (
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveUp(index)}
+                      disabled={index === 0}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#A0A3B1">
+                        <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
                       </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#494D66">
-                        <path d="M8 5v14l11-7z" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleMoveDown(index)}
+                      disabled={index === tracks.length - 1}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#A0A3B1">
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
                       </svg>
-                    )}
-                  </button>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTrack(index)}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 transition hover:bg-rose-500/15"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF4D6D">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* Album Art */}
-              <img
-                src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
-                alt={track.title}
-                style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', flexShrink: 0, marginRight: 12 }}
-              />
-
-              {/* Track Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: currentTrack?.id === track.id ? '#8B85FF' : '#EEF0FF',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {track.title}
-                </p>
-                <p style={{ fontSize: 11, color: '#8B8FA8', marginTop: 2 }}>{track.artist}</p>
-              </div>
-
-              {/* Edit Controls */}
-              {editing && (
-                <div style={{ display: 'flex', gap: 4, marginLeft: 12 }}>
-                  <button
-                    onClick={() => handleMoveUp(index)}
-                    disabled={index === 0}
-                    style={{
-                      background: 'rgba(255,255,255,.05)',
-                      border: '1px solid rgba(255,255,255,.06)',
-                      borderRadius: 6,
-                      width: 28,
-                      height: 28,
-                      cursor: index === 0 ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: index === 0 ? 0.3 : 1,
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B8FA8">
-                      <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleMoveDown(index)}
-                    disabled={index === tracks.length - 1}
-                    style={{
-                      background: 'rgba(255,255,255,.05)',
-                      border: '1px solid rgba(255,255,255,.06)',
-                      borderRadius: 6,
-                      width: 28,
-                      height: 28,
-                      cursor: index === tracks.length - 1 ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: index === tracks.length - 1 ? 0.3 : 1,
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B8FA8">
-                      <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleRemoveTrack(index)}
-                    style={{
-                      background: 'rgba(255,77,109,.1)',
-                      border: '1px solid rgba(255,77,109,.2)',
-                      borderRadius: 6,
-                      width: 28,
-                      height: 28,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF4D6D">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Edit Mode Instructions */}
       {editing && (
-        <div style={{
-          marginTop: 16,
-          padding: '12px 16px',
-          background: 'rgba(108,99,255,.08)',
-          border: '1px solid rgba(108,99,255,.2)',
-          borderRadius: 10,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#6C63FF">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-          </svg>
-          <p style={{ fontSize: 12, color: '#8B85FF' }}>
+        <div className="mt-4 rounded-2xl border border-indigo-500/20 bg-[rgba(108,99,255,0.08)] px-4 py-3">
+          <p className="text-xs leading-5 text-[#8B85FF]">
             Use the arrow buttons to reorder tracks. Click the X to remove a track.
           </p>
         </div>
