@@ -36,39 +36,34 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
     <div className="space-y-10">
 
       {/* HERO */}
-      <div className="rounded-2xl p-8 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-green-500/20 blur-3xl rounded-full" />
+      <div className="relative rounded-3xl p-8 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800 overflow-hidden shadow-xl">
 
-        <p className="text-xs uppercase tracking-widest text-green-400 mb-2">
-          Welcome back, {firstName}
-        </p>
+  {/* glow */}
+  <div className="absolute -top-20 -right-20 w-72 h-72 bg-green-500/20 blur-3xl rounded-full" />
 
-        <h1 className="text-4xl font-bold mb-3">
-          Your music,<br />
-          <span className="text-green-400 italic">your way.</span>
-        </h1>
+  <p className="text-xs uppercase tracking-widest text-green-400 mb-2">
+    Welcome back
+  </p>
 
-        <p className="text-zinc-400 text-sm mb-6 max-w-md">
-          Ad-free listening. AI-powered playlists. Import from Spotify & more.
-        </p>
+  <h1 className="text-5xl font-bold mb-3 leading-tight">
+    Your music,<br />
+    <span className="text-green-400 italic">your way.</span>
+  </h1>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => onNavigate('import')}
-            className="bg-green-500 hover:bg-green-400 text-black px-5 py-2 rounded-full font-semibold transition"
-          >
-            Import Playlist
-          </button>
+  <p className="text-zinc-400 text-sm mb-6 max-w-md">
+    Ad-free listening. AI-powered playlists. Import from Spotify & more.
+  </p>
 
-          <button
-            onClick={() => onNavigate('search')}
-            className="border border-zinc-700 px-5 py-2 rounded-full text-zinc-300 hover:bg-zinc-800 transition"
-          >
-            Browse Music
-          </button>
-        </div>
-      </div>
+  <div className="flex gap-4">
+    <button className="bg-green-500 hover:bg-green-400 px-6 py-3 rounded-full font-semibold text-black transition shadow-lg">
+      Import Playlist
+    </button>
 
+    <button className="border border-zinc-700 px-6 py-3 rounded-full text-zinc-300 hover:bg-zinc-800 transition">
+      Browse Music
+    </button>
+  </div>
+</div>
       {/* FEATURED */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Featured</h2>
