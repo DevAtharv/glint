@@ -1,6 +1,6 @@
 import type { Track, Playlist } from './src/types/index'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || 'http://localhost:3001'
+const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
 
 export function hasBackend(): boolean {
   return !!import.meta.env.VITE_BACKEND_URL?.trim()
@@ -10,6 +10,10 @@ export async function importFromBackend(
   url: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
+  if (!BACKEND) {
+    throw new Error('Backend URL is not configured.')
+  }
+
   onProgress('Connecting to Glint backend...')
 
   const res = await fetch(`${BACKEND}/api/import`, {
@@ -37,6 +41,10 @@ export async function generateFromBackend(
   prompt: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
+  if (!BACKEND) {
+    throw new Error('Backend URL is not configured.')
+  }
+
   onProgress('Asking Groq AI via backend...')
 
   const res = await fetch(`${BACKEND}/api/generate`, {
