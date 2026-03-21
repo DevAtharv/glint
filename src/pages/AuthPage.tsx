@@ -1,12 +1,12 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { signIn, signUp } from '../services/supabase'
 
-interface AuthPageProps {
+interface Props {
   onAuth: () => void
   isDemo?: boolean
 }
 
-export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
+export default function AuthPage({ onAuth }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,7 +14,7 @@ export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handle = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -35,9 +35,12 @@ export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form onSubmit={handle} className="bg-gray-900 p-6 rounded-xl w-full max-w-sm">
-        <h2 className="text-xl mb-4">{mode === 'login' ? 'Login' : 'Register'}</h2>
+    <div className="flex h-screen items-center justify-center bg-[#121212] text-white">
+      <form onSubmit={handleSubmit} className="bg-[#181818] p-6 rounded-xl w-full max-w-sm">
+
+        <h2 className="text-xl mb-4">
+          {mode === 'login' ? 'Login' : 'Register'}
+        </h2>
 
         {mode === 'register' && (
           <input
@@ -65,22 +68,20 @@ export default function AuthPage({ onAuth, isDemo }: AuthPageProps) {
 
         {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
-        <button
-          type="submit"
-          className="w-full bg-indigo-500 p-2 rounded"
-        >
+        <button className="w-full bg-green-500 text-black p-2 rounded">
           {loading ? 'Loading...' : mode === 'login' ? 'Login' : 'Register'}
         </button>
 
         <p className="text-sm mt-3">
           {mode === 'login' ? 'No account?' : 'Already have an account?'}{' '}
           <span
-            className="text-indigo-400 cursor-pointer"
+            className="text-green-400 cursor-pointer"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
             {mode === 'login' ? 'Register' : 'Login'}
           </span>
         </p>
+
       </form>
     </div>
   )

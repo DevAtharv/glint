@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { usePlayer } from './hooks/usePlayer'
 import { useYouTubePlayer } from './hooks/useYouTubePlayer'
@@ -15,7 +14,12 @@ import EditPlaylistPage from './pages/EditPlaylistPage'
 import type { Page, Track, Playlist } from './types'
 import { savePlaylists, loadPlaylists, saveLiked, loadLiked } from './services/supabase'
 
-const GUEST_USER = { id: 'guest', email: 'guest@glint.app', name: 'Guest', memberType: 'Free' as const }
+const GUEST_USER = {
+  id: 'guest',
+  email: 'guest@glint.app',
+  name: 'Guest',
+  memberType: 'Free' as const,
+}
 
 function GlintApp() {
   const { user, loading, isDemo } = useAuth()
@@ -38,6 +42,7 @@ function GlintApp() {
     seekTo: player.seekTo,
   })
 
+  // Load data
   useEffect(() => {
     if (user && !isDemo) {
       loadPlaylists(user.id).then(d => setPlaylists(d as Playlist[]))
@@ -45,12 +50,14 @@ function GlintApp() {
     }
   }, [user, isDemo])
 
+  // Save playlists
   useEffect(() => {
-    if (user && !isDemo && playlists.length > 0) {
+    if (user && !isDemo) {
       savePlaylists(user.id, playlists)
     }
   }, [playlists, user, isDemo])
 
+  // Save liked
   useEffect(() => {
     if (user && !isDemo) {
       saveLiked(user.id, liked)
@@ -67,40 +74,40 @@ function GlintApp() {
 
   const handleLike = useCallback(() => {
     if (!player.currentTrack) return
+
     const track = player.currentTrack
+
     setLiked(prev =>
-      prev.find(t => t.id === track.id)
+      prev.some(t => t.id === track.id)
         ? prev.filter(t => t.id !== track.id)
         : [track, ...prev]
     )
+
     player.setLiked(!player.liked)
   }, [player])
 
-  const isLiked = player.currentTrack ? liked.some(t => t.id === player.currentTrack!.id) : false
+  const isLiked = player.currentTrack
+    ? liked.some(t => t.id === player.currentTrack!.id)
+    : false
 
+  // 🔻 Loading Screen
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0B0D12]">
+      <div className="flex h-screen items-center justify-center bg-[#121212] text-white">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500">
-            <span
-              className="material-symbols-outlined text-2xl text-black"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              music_note
-            </span>
-          </div>
-          <span className="text-xl font-black text-[#EEF0FF]">Glint</span>
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <div className="h-10 w-10 rounded-full border-2 border-green-500 border-t-transparent animate-spin" />
+          <p className="text-sm text-gray-400">Loading Glint...</p>
         </div>
       </div>
     )
   }
 
+  // 🔻 Auth
   if (!activeUser) {
     return <AuthPage onAuth={() => setGuestMode(true)} isDemo={isDemo} />
   }
 
+  // 🔻 Page Router
   const pageContent = () => {
     if (editingPlaylist) {
       return (
@@ -119,7 +126,7 @@ function GlintApp() {
 
     switch (page) {
       case 'home':
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={p => setPage(p)} />
+        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
       case 'search':
         return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
       case 'library':
@@ -130,7 +137,7 @@ function GlintApp() {
             onPlay={player.playTrack}
             currentTrack={player.currentTrack}
             onLike={handleLike}
-            onEditPlaylist={pl => setEditingPlaylist(pl)}
+            onEditPlaylist={setEditingPlaylist}
           />
         )
       case 'import':
@@ -138,12 +145,14 @@ function GlintApp() {
       case 'profile':
         return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
       default:
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={p => setPage(p)} />
+        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
     }
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0B0D12] text-[#EEF0FF]">
+    <div className="flex h-screen bg-[#121212] text-white overflow-hidden">
+
+      {/* Sidebar */}
       <Sidebar
         currentPage={page}
         onNavigate={setPage}
@@ -152,8 +161,10 @@ function GlintApp() {
         currentTrack={player.currentTrack}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#0B0D12]">
-        <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* Main */}
+      <main className="flex flex-1 flex-col overflow-hidden">
+
+        <div className="flex-1 overflow-y-auto">
           {pageContent()}
         </div>
 
@@ -179,13 +190,10 @@ function GlintApp() {
     </div>
   )
 }
-
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <GlintApp />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <GlintApp />
+    </AuthProvider>
   )
 }
