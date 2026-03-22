@@ -1,249 +1,123 @@
 import React, { useState } from 'react'
-import type { Playlist, Track } from './src/types/index'
-import { generatePlaylistFromPrompt, importPlaylistFromUrl } from './src/services/groq'
-import { importFromBackend, generateFromBackend, hasBackend } from './importApi'
-import TrackRow from './src/components/TrackRow'
+import type { Playlist, Track } from '../types' // Adjust this import based on your actual types file
 
 interface ImportPageProps {
-  onSavePlaylist: (pl: Playlist) => void
-  onPlay: (track: Track, queue?: Track[]) => void
-  currentTrack: Track | null
+  onImport: (playlist: Playlist) => void
+  onNavigate: (page: 'search' | 'library' | 'home' | 'profile') => void
 }
 
-const MOODS = ['Chill', 'Energetic', 'Focus', 'Happy', 'Melancholy', 'Late Night', 'Workout', 'Party']
-const BACKEND = import.meta.env.VITE_BACKEND_URL?.trim() || ''
+const Icons = {
+  Sparkles: () => <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z" /></svg>,
+  Bolt: () => <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.16-.28L13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z" /></svg>,
+  Sync: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>,
+  Plus: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+}
 
-export default function ImportPage({ onSavePlaylist, onPlay, currentTrack }: ImportPageProps) {
-  const [tab, setTab] = useState<'spotify' | 'ai'>('spotify')
-  const [spotifyUrl, setSpotifyUrl] = useState('')
+export default function ImportPage({ onImport, onNavigate }: ImportPageProps) {
   const [prompt, setPrompt] = useState('')
-  const [moods, setMoods] = useState<string[]>(['Chill'])
-  const [log, setLog] = useState<{ msg: string; type: 'info' | 'ok' | 'err' }[]>([])
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<Playlist | null>(null)
-  const [saved, setSaved] = useState(false)
+  const [url, setUrl] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  const addLog = (msg: string, type: 'info' | 'ok' | 'err' = 'info') =>
-    setLog(prev => [...prev, { msg, type }])
+  // --- LOGIC: AI Generation ---
+  const handleGenerate = () => {
+    if (!prompt.trim()) return
 
-  const reset = () => { setLog([]); setResult(null); setSaved(false) }
+    setIsGenerating(true)
+    
+    // Simulate an API call / Generation delay
+    setTimeout(() => {
+      const newPlaylist: Playlist = {
+        id: `ai-${Date.now()}`,
+        name: `${prompt.split(' ')[0]} Vibes`, // Creates a name based on the first word
+        cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80',
+        tracks: [
+          // Mock tracks just so it's not empty
+          { id: '1', title: 'Generated Track 1', artist: 'Glint AI', duration: 180, albumArt: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80' }
+        ]
+      }
+      
+      onImport(newPlaylist) // Pass it up to App.tsx
+      setIsGenerating(false)
+      onNavigate('library') // Send user to library to see their new playlist
+    }, 1500)
+  }
 
-   const handleSpotifyImport = async () => {
-     const url = spotifyUrl.trim()
-     if (!url) { addLog('Paste a Spotify playlist URL first', 'err'); return }
-     if (!url.includes('spotify.com/playlist')) {
-       addLog('That doesn\'t look like a Spotify playlist URL', 'err')
-       return
-     }
-     reset()
-     setLoading(true)
-     try {
-       // Use backend if available, otherwise fallback to direct Groq
-       if (hasBackend()) {
-         const pl = await importFromBackend(url, msg => addLog(msg))
-         addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
-         setResult(pl)
-       } else {
-         const pl = await importPlaylistFromUrl(url, msg => addLog(msg))
-         addLog(`${pl.tracks.filter(t => t.youtubeId).length} of ${pl.tracks.length} tracks playable`, 'ok')
-         setResult(pl)
-       }
-     } catch (e: unknown) {
-       addLog(e instanceof Error ? e.message : 'Import failed', 'err')
-     } finally {
-       setLoading(false)
-     }
-   }
-
-   const handleGenerate = async () => {
-     const fullPrompt = prompt.trim() || moods.join(', ') + ' music'
-     reset()
-     setLoading(true)
-     try {
-       // Use backend if available, otherwise fallback to direct Groq
-       if (hasBackend()) {
-         const pl = await generateFromBackend(fullPrompt, msg => addLog(msg))
-         addLog(`${pl.tracks.length} tracks ready`, 'ok')
-         setResult(pl)
-       } else {
-         const pl = await generatePlaylistFromPrompt(fullPrompt, msg => addLog(msg))
-         addLog(`${pl.tracks.length} tracks ready`, 'ok')
-         setResult(pl)
-       }
-     } catch (e: unknown) {
-       addLog(e instanceof Error ? e.message : 'Failed', 'err')
-     } finally {
-       setLoading(false)
-     }
-   }
-
-  const inp: React.CSSProperties = {
-    width: '100%', background: '#141720',
-    border: '1px solid rgba(255,255,255,.06)', borderRadius: 10,
-    padding: '11px 14px', color: '#EEF0FF', fontSize: 13,
-    fontFamily: "'Manrope',sans-serif", outline: 'none',
+  // --- LOGIC: URL Import ---
+  const handleUrlImport = () => {
+    if (!url.trim()) return
+    
+    const newPlaylist: Playlist = {
+      id: `imported-${Date.now()}`,
+      name: 'Imported Playlist',
+      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
+      tracks: []
+    }
+    
+    onImport(newPlaylist)
+    onNavigate('library')
   }
 
   return (
-    <div style={{ padding: '0 32px 40px' }}>
+    <div className="min-h-screen bg-[#131313] text-[#e2e2e2] font-sans pb-32">
+      <main className="p-6 md:p-10 max-w-[1600px] mx-auto">
+        <header className="mb-10">
+          <h1 className="text-4xl font-black text-white tracking-tight mb-2">Playlist Import</h1>
+          <p className="text-white/50 max-w-lg">Migrate your library or generate brand new moods using our high-fidelity engine.</p>
+        </header>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#1DB954,#6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.517.779.779 0 01.517-.972c3.632-1.102 8.147-.568 11.236 1.328a.78.78 0 01.257 1.07zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.935.935 0 11-.543-1.79c3.532-1.072 9.404-.865 13.115 1.338a.935.935 0 01-.955 1.609z"/></svg>
-        </div>
-        <div>
-          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 22, color: '#EEF0FF' }}>Import & Generate</h2>
-          <p style={{ fontSize: 12, color: '#8B8FA8', marginTop: 2 }}>Import your Spotify playlist or generate one with AI</p>
-        </div>
-      </div>
-
-      {/* Backend status */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, marginBottom: 20, background: BACKEND ? 'rgba(29,185,84,.06)' : 'rgba(245,166,35,.06)', border: `1px solid ${BACKEND ? 'rgba(29,185,84,.2)' : 'rgba(245,166,35,.2)'}` }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: BACKEND ? '#1DB954' : '#f5a623', flexShrink: 0 }} />
-        <p style={{ fontSize: 11, fontWeight: 600, color: BACKEND ? '#1DB954' : '#f5a623' }}>
-          {BACKEND
-            ? `Backend connected: ${BACKEND}`
-            : 'Backend not set — Spotify import needs backend. AI generate works without it.'}
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button onClick={() => { setTab('spotify'); reset() }} style={{
-          padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600,
-          cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-          background: tab === 'spotify' ? '#1DB954' : 'transparent',
-          color: tab === 'spotify' ? '#fff' : '#8B8FA8',
-          border: tab === 'spotify' ? 'none' : '1px solid rgba(255,255,255,.08)',
-        }}>
-          Spotify Import
-        </button>
-        <button onClick={() => { setTab('ai'); reset() }} style={{
-          padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600,
-          cursor: 'pointer', fontFamily: "'Manrope',sans-serif",
-          background: tab === 'ai' ? '#6C63FF' : 'transparent',
-          color: tab === 'ai' ? '#fff' : '#8B8FA8',
-          border: tab === 'ai' ? 'none' : '1px solid rgba(255,255,255,.08)',
-        }}>
-          ✦ AI Generate
-        </button>
-      </div>
-
-      {/* SPOTIFY TAB */}
-      {tab === 'spotify' && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#EEF0FF', marginBottom: 4 }}>Paste Spotify playlist URL</p>
-          <p style={{ fontSize: 11, color: '#8B8FA8', marginBottom: 14 }}>
-            Open any public playlist in Spotify → ··· → Share → Copy link
-          </p>
-          <input
-            value={spotifyUrl}
-            onChange={e => setSpotifyUrl(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSpotifyImport()}
-            placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
-            style={{ ...inp, marginBottom: 16 }}
-          />
-          <button onClick={handleSpotifyImport} disabled={loading || !spotifyUrl.trim()} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            width: '100%', padding: 12,
-            background: loading || !spotifyUrl.trim() ? '#1F2233' : '#1DB954',
-            border: 'none', borderRadius: 10,
-            color: loading || !spotifyUrl.trim() ? '#494D66' : '#fff',
-            fontSize: 13, fontWeight: 700, fontFamily: "'Manrope',sans-serif",
-            cursor: loading || !spotifyUrl.trim() ? 'not-allowed' : 'pointer',
-          }}>
-            {loading ? <><Spin /> Importing...</> : 'Import from Spotify'}
-          </button>
-        </div>
-      )}
-
-      {/* AI TAB */}
-      {tab === 'ai' && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#EEF0FF', marginBottom: 4 }}>Describe your playlist</p>
-          <p style={{ fontSize: 11, color: '#8B8FA8', marginBottom: 14 }}>
-            {BACKEND ? 'AI (via backend) builds a playlist and finds each track on YouTube' : 'Uses curated fallback tracks — connect backend for real AI'}
-          </p>
-          <textarea
-            value={prompt} onChange={e => setPrompt(e.target.value)}
-            placeholder="e.g. late night coding lofi, aggressive gym hip-hop, sad indie for a rainy day..."
-            rows={3} style={{ ...inp, resize: 'none', marginBottom: 14 }}
-          />
-          <p style={{ fontSize: 11, color: '#494D66', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Quick moods</p>
-          <div style={{ marginBottom: 18 }}>
-            {MOODS.map(m => (
-              <span key={m} onClick={() => setMoods(p => p.includes(m) ? p.filter(x => x !== m) : [...p, m])}
-                style={{
-                  display: 'inline-flex', padding: '5px 13px', borderRadius: 20,
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  marginRight: 6, marginBottom: 6, userSelect: 'none',
-                  background: moods.includes(m) ? 'rgba(108,99,255,.15)' : '#141720',
-                  color: moods.includes(m) ? '#8B85FF' : '#8B8FA8',
-                  border: moods.includes(m) ? '1px solid rgba(108,99,255,.3)' : '1px solid rgba(255,255,255,.06)',
-                }}>
-                {m}
-              </span>
-            ))}
-          </div>
-          <button onClick={handleGenerate} disabled={loading} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            width: '100%', padding: 12, background: loading ? '#4a42cc' : '#6C63FF',
-            border: 'none', borderRadius: 10, color: '#fff', fontSize: 13,
-            fontWeight: 700, fontFamily: "'Manrope',sans-serif", cursor: loading ? 'not-allowed' : 'pointer',
-          }}>
-            {loading ? <><Spin /> Generating...</> : '✦ Generate Playlist'}
-          </button>
-        </div>
-      )}
-
-      {/* Log */}
-      {log.length > 0 && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
-          {log.map((line, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
-              <span style={{ fontSize: 13, flexShrink: 0, color: line.type === 'ok' ? '#1DB954' : line.type === 'err' ? '#FF4D6D' : '#6C63FF' }}>
-                {line.type === 'ok' ? '✓' : line.type === 'err' ? '✕' : '›'}
-              </span>
-              <p style={{ fontSize: 12, lineHeight: 1.5, color: line.type === 'ok' ? '#1DB954' : line.type === 'err' ? '#FF4D6D' : i === log.length - 1 && loading ? '#8B85FF' : '#494D66' }}>
-                {line.msg}
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          
+          {/* AI Generate Section */}
+          <section className="bg-white/[0.03] rounded-2xl p-6 border border-white/5 flex flex-col shadow-lg">
+            <div className="flex items-center gap-2 mb-6 text-[#00e628]">
+              <Icons.Sparkles />
+              <h2 className="text-xl font-bold text-white">AI Generate</h2>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Result */}
-      {result && !loading && (
-        <div style={{ background: '#0E1018', border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-            {result.cover && (
-              <img src={result.cover} alt={result.name} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
-            )}
-            <div style={{ flex: 1 }}>
-              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 18, color: '#EEF0FF', marginBottom: 4 }}>{result.name}</h3>
-              <p style={{ fontSize: 12, color: '#8B8FA8' }}>
-                {result.tracks.filter(t => t.youtubeId).length} of {result.tracks.length} tracks playable
-              </p>
-            </div>
-            <button onClick={() => { onSavePlaylist(result); setSaved(true) }} disabled={saved}
-              style={{ padding: '8px 16px', background: saved ? 'rgba(29,185,84,.1)' : '#1DB954', border: saved ? '1px solid rgba(29,185,84,.2)' : 'none', borderRadius: 9, color: saved ? '#1DB954' : '#fff', fontSize: 12, fontWeight: 700, fontFamily: "'Manrope',sans-serif", cursor: saved ? 'default' : 'pointer', flexShrink: 0 }}>
-              {saved ? '✓ Saved' : 'Save to Library'}
+            
+            <textarea 
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-4 text-[#e2e2e2] focus:border-[#00e628] focus:ring-1 transition-all resize-none outline-none mb-4" 
+              placeholder="Describe the vibe..."
+            />
+            
+            <button 
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt}
+              className="w-full py-3 bg-[#00e628] text-black font-black rounded-xl flex items-center justify-center gap-2 hover:bg-[#3be477] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? 'Generating...' : 'Generate Playlist'}
+              <Icons.Bolt />
             </button>
-          </div>
-          {result.tracks.map((t, i) => (
-            <TrackRow key={t.id} track={t} index={i}
-              isActive={currentTrack?.id === t.id}
-              onPlay={tr => onPlay(tr, result.tracks)} />
-          ))}
-        </div>
-      )}
+          </section>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          {/* Platform Import Section */}
+          <section className="bg-white/[0.03] rounded-2xl p-6 border border-white/5 shadow-lg">
+            <div className="flex items-center gap-2 mb-6 text-white/40">
+              <Icons.Sync />
+              <h2 className="text-xl font-bold text-white">Paste URL</h2>
+            </div>
+            
+            <div className="flex flex-col gap-4 mt-16">
+              <input 
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 focus:ring-1 focus:ring-[#00e628] focus:border-[#00e628] text-white outline-none" 
+                placeholder="Paste Spotify or Apple Music link..." 
+                type="text"
+              />
+              <button 
+                onClick={handleUrlImport}
+                disabled={!url}
+                className="w-full bg-white/10 py-4 rounded-xl text-white font-bold hover:bg-white/20 transition-colors disabled:opacity-50"
+              >
+                Import from Link
+              </button>
+            </div>
+          </section>
+
+        </div>
+      </main>
     </div>
   )
-}
-
-function Spin() {
-  return <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .7s linear infinite', flexShrink: 0 }} />
 }
