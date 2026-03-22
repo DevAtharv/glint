@@ -20,8 +20,8 @@ function GlintApp() {
   // -- UI STATE --
   const [page, setPage] = useState<Page>('home')
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [guestMode, setGuestMode] = useState(false) // The new Guest Mode state
-  const [isDataLoaded, setIsDataLoaded] = useState(false) // Data safety lock
+  const [guestMode, setGuestMode] = useState(false) 
+  const [isDataLoaded, setIsDataLoaded] = useState(false) 
 
   // -- APP DATA STATE --
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
@@ -42,7 +42,7 @@ function GlintApp() {
     containerId: 'youtube-main-player' 
   })
 
-  // 1️⃣ INITIAL LOAD (Cloud or Local Storage)
+  // 1️⃣ INITIAL LOAD
   useEffect(() => {
     if (user && !isDemo) {
       Promise.all([
@@ -52,9 +52,8 @@ function GlintApp() {
         if (p) setPlaylists(p as Playlist[])
         if (l) setLiked(l as Track[])
         setIsDataLoaded(true)
-      }).catch(() => setIsDataLoaded(true)) // Ensure it unlocks even if it fails
+      }).catch(() => setIsDataLoaded(true)) 
     } else {
-      // Safe Local Storage Load for Guest Mode
       try {
         const localP = localStorage.getItem('glint-playlists')
         const localL = localStorage.getItem('glint-liked')
@@ -82,7 +81,7 @@ function GlintApp() {
     }
   }, [playlists, liked, user, isDemo, isDataLoaded])
 
-  // 3️⃣ REALTIME SYNC (With ? safety check)
+  // 3️⃣ REALTIME SYNC
   useEffect(() => {
     if (!user || isDemo || !supabase) return
 
@@ -120,7 +119,6 @@ function GlintApp() {
   // -- RENDER BLOCKING --
   if (loading) return <div className="h-screen bg-black flex items-center justify-center text-[#00e628] font-black text-2xl animate-pulse">GLINT</div>
   
-  // Gatekeeper: Show Auth page if no user, not demo, AND not in guest mode
   if (!user && !isDemo && !guestMode) {
     return <AuthPage onAuth={() => {}} onGuest={() => setGuestMode(true)} isDemo={false} />
   }
@@ -150,8 +148,12 @@ function GlintApp() {
   return (
     <div className="flex h-screen bg-[#121212] text-white overflow-hidden relative flex-col lg:flex-row">
       
-      {/* Teleporting Video Player */}
-      <div className={`transition-all duration-500 overflow-hidden ${isFullscreen ? 'fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl' : 'absolute top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none -z-50'}`}>
+      {/* 🚀 TELEPORTING VIDEO BOX (Now uses Fixed Background Hack) */}
+      <div className={`transition-all duration-500 overflow-hidden ${
+        isFullscreen 
+          ? 'fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl' 
+          : 'fixed -top-10 -left-10 w-[1px] h-[1px] opacity-0 pointer-events-none z-[-50]'
+      }`}>
         <div id="youtube-main-player" className={`${isFullscreen ? 'w-full max-w-5xl aspect-video rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(0,230,40,0.2)]' : 'w-full h-full'}`} />
         {isFullscreen && <button onClick={() => setIsFullscreen(false)} className="mt-8 px-8 py-3 bg-[#00e628] text-black rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform">✕ Close Video</button>}
       </div>
@@ -163,7 +165,6 @@ function GlintApp() {
         <PlayerBar track={player.currentTrack} isPlaying={player.isPlaying} progress={player.progress} currentSecs={player.currentSecs} shuffle={player.shuffle} repeat={player.repeat} liked={isLiked} volume={player.volume} onTogglePlay={player.togglePlay} onNext={player.next} onPrev={player.prev} onSeek={player.seek} onShuffle={() => player.setShuffle(s => !s)} onRepeat={() => player.setRepeat(r => !r)} onLike={handleLike} onVolumeChange={player.setVolume} isFullscreen={isFullscreen} onToggleFullscreen={() => setIsFullscreen(!isFullscreen)} />
       </main>
 
-      {/* Mobile Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center bg-[#121212]/95 backdrop-blur-xl border-t border-white/5 py-3 pb-6 px-4">
          {['home', 'search', 'library', 'import', 'profile'].map((p) => (
            <button key={p} onClick={() => handleNavigate(p as Page)} className={`flex flex-col items-center gap-1 transition-all ${page === p ? 'text-[#00e628] -translate-y-1' : 'text-white/40 hover:text-white/80'}`}>
