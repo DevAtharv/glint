@@ -20,8 +20,8 @@ async function groqChat(messages: { role: string; content: string }[]): Promise<
     body: JSON.stringify({
       model: 'llama-3.1-8b-instant',
       messages,
-      temperature: 0.8,
-      max_tokens: 800,
+      temperature: 0.5, // Lowered for more accurate, reliable song matching
+      max_tokens: 1000,
     }),
   })
 
@@ -37,18 +37,21 @@ async function groqChat(messages: { role: string; content: string }[]): Promise<
 }
 
 function parseTracklist(text: string): { title: string; artist: string }[] {
+  // Strip out markdown formatting if the AI decided to be helpful and wrap the JSON
+  const cleanedText = text.replace(/```json/gi, '').replace(/```/g, '').trim()
+
   // Try JSON array first
   try {
-    const match = text.match(/\[[\s\S]*?\]/)
+    const match = cleanedText.match(/\[[\s\S]*?\]/)
     if (match) {
       const arr = JSON.parse(match[0])
       if (Array.isArray(arr) && arr[0]?.title && arr[0]?.artist) return arr
     }
-  } catch { /**/ }
+  } catch { console.warn("Groq JSON parse failed, attempting line-by-line fallback") }
 
-  // Try line-by-line fallback
+  // Try line-by-line fallback if JSON fails
   const results: { title: string; artist: string }[] = []
-  for (const raw of text.split('\n')) {
+  for (const raw of cleanedText.split('\n')) {
     const line = raw.replace(/^\d+[\.\)]\s*/, '').replace(/[*_`]/g, '').trim()
     if (!line) continue
     const sep = line.match(/\s[-–—]\s|\s[Bb]y\s/)
@@ -67,7 +70,7 @@ export async function generatePlaylistFromPrompt(
   prompt: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
-  onProgress('Asking Groq AI for track suggestions...')
+  onProgress('Asking Groq AI for precise track suggestions...')
 
   let pairs: { title: string; artist: string }[] = []
 
@@ -75,13 +78,20 @@ export async function generatePlaylistFromPrompt(
     const response = await groqChat([
       {
         role: 'system',
-        content: `You are a music expert. Suggest 20 real songs matching the user's description.
-Reply with ONLY a JSON array, no markdown, no explanation:
-[{"title":"Song Name","artist":"Artist Name"},{"title":"...","artist":"..."}]`,
+        content: `You are an elite, highly accurate music curator. 
+Your objective is to suggest exactly 20 REAL, existing songs that perfectly match the user's description.
+
+CRITICAL RULES:
+1. STRICTLY respect the language requested (e.g., if the user asks for Hindi, Bollywood, or Punjabi, ONLY provide songs in that language).
+2. STRICTLY respect the artist requested. If an artist is named, prioritize their actual discography.
+3. Reply with ONLY a raw JSON array of objects. Do not include markdown formatting, backticks, or conversational text.
+
+Format:
+[{"title":"Song Name","artist":"Artist Name"}]`,
       },
       {
         role: 'user',
-        content: `Playlist for: ${prompt}`,
+        content: `Create a playlist for: ${prompt}`,
       },
     ])
     pairs = parseTracklist(response)
@@ -97,8 +107,9 @@ Reply with ONLY a JSON array, no markdown, no explanation:
     throw new Error("AI returned an invalid format. Please try again.")
   }
 
-  onProgress(`AI found ${pairs.length} tracks — searching YouTube...`)
+  onProgress(`AI found ${pairs.length} precise tracks — searching YouTube...`)
 
+  // Search YouTube for each track
   const results = await Promise.allSettled(
     pairs.map(p => searchYouTube(`${p.title} ${p.artist} official audio`, 1))
   )
@@ -106,22 +117,22 @@ Reply with ONLY a JSON array, no markdown, no explanation:
   const tracks: Track[] = results.map((r, i) => {
     if (r.status === 'fulfilled' && r.value[0]) return r.value[0]
     
-    // FIX: Provide a fallback YouTube ID so the player doesn't crash if the backend search fails
+    // Fallback if YouTube search fails for a specific track
     return {
       id: `fb-${i}-${Date.now()}`,
       title: pairs[i]?.title ?? 'Unknown',
       artist: pairs[i]?.artist ?? 'Unknown',
       albumArt: `https://picsum.photos/seed/pl${i}/120/120`,
       duration: 200,
-      youtubeId: 'jfKfPfyJRdk', // Generic Lofi placeholder so it plays *something*
+      youtubeId: 'jfKfPfyJRdk', 
     } satisfies Track
   }).filter(Boolean) as Track[]
 
-  onProgress('Playlist ready!')
+  onProgress('Playlist deployed successfully!')
 
   return {
     id: `ai-${Date.now()}`,
-    name: prompt.slice(0, 40) || 'AI Playlist',
+    name: prompt.slice(0, 40) || 'AI Curated Playlist',
     cover: tracks.find(t => t.albumArt && !t.albumArt.includes('picsum'))?.albumArt
       ?? `https://picsum.photos/seed/ai${Date.now()}/80/80`,
     tracks,
@@ -134,11 +145,10 @@ export async function importPlaylistFromUrl(
   url: string,
   onProgress: (msg: string) => void
 ): Promise<Playlist> {
-  onProgress('Analysing URL...')
+  onProgress('Analysing URL structure...')
 
   let platform = 'music'
   
-  // FIX: Much more robust URL detection
   const lowerUrl = url.toLowerCase()
   if (lowerUrl.includes('spotify.com')) platform = 'Spotify'
   else if (lowerUrl.includes('apple.com')) platform = 'Apple Music'
@@ -146,7 +156,7 @@ export async function importPlaylistFromUrl(
   else if (lowerUrl.includes('soundcloud.com')) platform = 'SoundCloud'
   else if (lowerUrl.includes('tidal.com')) platform = 'Tidal'
 
-  onProgress(`Detected ${platform}. Generating equivalent tracks with AI...`)
+  onProgress(`Detected ${platform}. Reconstructing playlist with AI...`)
 
   let urlHint = ''
   try {
@@ -161,9 +171,9 @@ export async function importPlaylistFromUrl(
       {
         role: 'system',
         content: `You help users migrate playlists between music platforms.
-The user gives you a ${platform} URL. Based on any context in the URL (artist name, playlist name, genre), suggest 20 real songs that would fit this playlist.
-Reply ONLY with a JSON array, no markdown:
-[{"title":"Song Name","artist":"Artist Name"},...]`,
+The user provides a ${platform} URL. Based on the context in the URL (artist name, playlist name, genre, language), suggest 20 real songs that accurately represent this playlist.
+Reply ONLY with a raw JSON array. No markdown, no conversational text.
+[{"title":"Song Name","artist":"Artist Name"}]`,
       },
       {
         role: 'user',
@@ -183,7 +193,7 @@ Reply ONLY with a JSON array, no markdown:
     throw new Error("AI returned an invalid format. Please try again.")
   }
 
-  onProgress(`Searching YouTube for ${pairs.length} tracks...`)
+  onProgress(`Locating ${pairs.length} tracks on global audio nodes...`)
 
   const results = await Promise.allSettled(
     pairs.map(p => searchYouTube(`${p.title} ${p.artist} official audio`, 1))
@@ -192,18 +202,17 @@ Reply ONLY with a JSON array, no markdown:
   const tracks: Track[] = results.map((r, i) => {
     if (r.status === 'fulfilled' && r.value[0]) return r.value[0]
     
-    // FIX: Provide a fallback YouTube ID so the player doesn't crash if the backend search fails
     return {
       id: `imp-${i}-${Date.now()}`,
       title: pairs[i]?.title ?? 'Unknown',
       artist: pairs[i]?.artist ?? 'Unknown',
       albumArt: `https://picsum.photos/seed/imp${i}/120/120`,
       duration: 200,
-      youtubeId: 'jfKfPfyJRdk', // Generic Lofi placeholder so it plays *something*
+      youtubeId: 'jfKfPfyJRdk', 
     } satisfies Track
   }).filter(Boolean) as Track[]
 
-  onProgress('Import complete!')
+  onProgress('Migration complete!')
 
   return {
     id: `import-${Date.now()}`,

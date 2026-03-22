@@ -15,4 +15,5 @@ export interface Playlist {
   cover: string
   tracks: Track[]
   userId?: string
+  createdAt?: string // <--- ADDED THIS TO FIX THE ERROR
 }
