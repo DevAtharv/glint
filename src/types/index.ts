@@ -1,11 +1,12 @@
+export type Page = 'home' | 'search' | 'library' | 'import' | 'profile'
+
 export interface Track {
   id: string
   title: string
   artist: string
   albumArt: string
   duration: number
-  youtubeId?: string
-  plays?: string
+  youtubeId: string
 }
 
 export interface Playlist {
@@ -13,14 +14,5 @@ export interface Playlist {
   name: string
   cover: string
   tracks: Track[]
-  createdAt: string
+  userId?: string
 }
-
-export interface User {
-  id: string
-  email: string
-  name: string
-  memberType: 'Free' | 'Gold' | 'Premium'
-}
-
-export type Page = 'home' | 'search' | 'library' | 'import' | 'profile'
