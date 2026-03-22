@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
-import type { Playlist } from '../types' // Adjust this path if needed
+import type { Playlist, Track } from '../types'
+// IMPORT THE REAL SERVICES:
+import { generatePlaylistFromPrompt, importPlaylistFromUrl } from '../services/groq'
 
-// We changed onImport to onSavePlaylist to match your App.tsx perfectly!
 interface ImportPageProps {
   onSavePlaylist: (playlist: Playlist) => void 
   onNavigate?: (page: string) => void
+  onPlay?: (track: Track) => void
+  currentTrack?: Track | null
 }
 
 const Icons = {
@@ -17,44 +20,46 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
   const [prompt, setPrompt] = useState('')
   const [url, setUrl] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [statusMsg, setStatusMsg] = useState('') // Shows the user what the AI is doing
 
-  // --- LOGIC: AI Generation ---
-  const handleGenerate = () => {
+  // --- REAL AI GENERATION ---
+  const handleGenerate = async () => {
     if (!prompt.trim()) return
-
     setIsGenerating(true)
-    
-    // Simulate an API call / Generation delay
-    setTimeout(() => {
-      const newPlaylist: Playlist = {
-        id: `ai-${Date.now()}`,
-        name: `${prompt.split(' ')[0]} Vibes`, 
-        cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80',
-        tracks: [
-          // A mock track so the playlist isn't empty
-          { id: `trk-${Date.now()}`, title: 'AI Generated Track', artist: 'Glint AI', duration: 180, albumArt: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80', youtubeId: 'MV_3Dpw-BRY' }
-        ]
-      }
-      
-      onSavePlaylist(newPlaylist) // Fires the save function in App.tsx!
+    setStatusMsg('Initializing AI...')
+
+    try {
+      // Calls your actual groq.ts file!
+      const newPlaylist = await generatePlaylistFromPrompt(prompt, setStatusMsg)
+      onSavePlaylist(newPlaylist)
+      if (onNavigate) onNavigate('library')
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'Failed to generate playlist.')
+    } finally {
       setIsGenerating(false)
-      if (onNavigate) onNavigate('library') // Send user to library
-    }, 1500)
+      setStatusMsg('')
+    }
   }
 
-  // --- LOGIC: URL Import ---
-  const handleUrlImport = () => {
+  // --- REAL URL IMPORT ---
+  const handleUrlImport = async () => {
     if (!url.trim()) return
-    
-    const newPlaylist: Playlist = {
-      id: `imported-${Date.now()}`,
-      name: 'Imported Playlist',
-      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
-      tracks: []
+    setIsGenerating(true)
+    setStatusMsg('Initializing Import...')
+
+    try {
+      // Calls your actual groq.ts file!
+      const newPlaylist = await importPlaylistFromUrl(url, setStatusMsg)
+      onSavePlaylist(newPlaylist)
+      if (onNavigate) onNavigate('library')
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'Failed to import playlist.')
+    } finally {
+      setIsGenerating(false)
+      setStatusMsg('')
     }
-    
-    onSavePlaylist(newPlaylist)
-    if (onNavigate) onNavigate('library')
   }
 
   return (
@@ -65,9 +70,15 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
           <p className="text-white/50 max-w-lg">Migrate your library or generate brand new moods using our high-fidelity engine.</p>
         </header>
 
+        {statusMsg && (
+          <div className="mb-6 p-4 bg-[#00e628]/10 border border-[#00e628]/30 rounded-lg text-[#00e628] font-mono text-sm flex items-center gap-3 animate-pulse">
+            <div className="w-4 h-4 rounded-full border-2 border-[#00e628] border-t-transparent animate-spin"></div>
+            {statusMsg}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           
-          {/* AI Generate Section */}
           <section className="bg-white/[0.03] rounded-2xl p-6 border border-white/5 flex flex-col shadow-lg">
             <div className="flex items-center gap-2 mb-6 text-[#00e628]">
               <Icons.Sparkles />
@@ -86,12 +97,11 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
               disabled={isGenerating || !prompt}
               className="w-full py-3 bg-[#00e628] text-black font-black rounded-xl flex items-center justify-center gap-2 hover:bg-[#3be477] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGenerating ? 'Generating...' : 'Generate Playlist'}
+              {isGenerating ? 'Working...' : 'Generate Playlist'}
               <Icons.Bolt />
             </button>
           </section>
 
-          {/* Platform Import Section */}
           <section className="bg-white/[0.03] rounded-2xl p-6 border border-white/5 shadow-lg">
             <div className="flex items-center gap-2 mb-6 text-white/40">
               <Icons.Sync />
@@ -108,10 +118,10 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
               />
               <button 
                 onClick={handleUrlImport}
-                disabled={!url}
+                disabled={isGenerating || !url}
                 className="w-full bg-white/10 py-4 rounded-xl text-white font-bold hover:bg-white/20 transition-colors disabled:opacity-50"
               >
-                Import from Link
+                {isGenerating ? 'Working...' : 'Import from Link'}
               </button>
             </div>
           </section>
