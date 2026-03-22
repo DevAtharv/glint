@@ -27,7 +27,6 @@ function GlintApp() {
   const [guestMode, setGuestMode] = useState(false)
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
   
-  // --- TELEPORT STATE ---
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
@@ -43,7 +42,6 @@ function GlintApp() {
   const player = usePlayer()
   const activeUser = user ?? (guestMode ? GUEST_USER : null)
 
-  // One Single Player Hook for the whole app
   useYouTubePlayer({
     videoId: player.currentTrack?.youtubeId ?? null,
     isPlaying: player.isPlaying,
@@ -129,7 +127,6 @@ function GlintApp() {
   return (
     <div className="flex h-screen bg-[#121212] text-white overflow-hidden relative">
       
-      {/* 🚀 THE TELEPORTING PLAYER BOX */}
       <div 
         className={`transition-all duration-500 overflow-hidden ${
           isFullscreen 
@@ -157,7 +154,14 @@ function GlintApp() {
         )}
       </div>
 
-      <Sidebar currentPage={page} onNavigate={setPage} playlists={playlists} onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} currentTrack={player.currentTrack} />
+      <Sidebar 
+        currentPage={page} 
+        onNavigate={setPage} 
+        playlists={playlists} 
+        liked={liked} // <--- Added this line
+        onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} 
+        currentTrack={player.currentTrack} 
+      />
 
       <main className="flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">{pageContent()}</div>
@@ -178,7 +182,6 @@ function GlintApp() {
           onRepeat={() => player.setRepeat(r => !r)}
           onLike={handleLike}
           onVolumeChange={player.setVolume}
-          // PASSING THE TELEPORT PROPS
           isFullscreen={isFullscreen}
           onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
         />
