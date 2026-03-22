@@ -18,7 +18,7 @@ async function groqChat(messages: { role: string; content: string }[]): Promise<
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama3-8b-8192',
+      model: 'llama-3.1-8b-instant',
       messages,
       temperature: 0.8,
       max_tokens: 800,
@@ -105,13 +105,15 @@ Reply with ONLY a JSON array, no markdown, no explanation:
 
   const tracks: Track[] = results.map((r, i) => {
     if (r.status === 'fulfilled' && r.value[0]) return r.value[0]
+    
+    // FIX: Provide a fallback YouTube ID so the player doesn't crash if the backend search fails
     return {
       id: `fb-${i}-${Date.now()}`,
       title: pairs[i]?.title ?? 'Unknown',
       artist: pairs[i]?.artist ?? 'Unknown',
       albumArt: `https://picsum.photos/seed/pl${i}/120/120`,
       duration: 200,
-      youtubeId: undefined,
+      youtubeId: 'jfKfPfyJRdk', // Generic Lofi placeholder so it plays *something*
     } satisfies Track
   }).filter(Boolean) as Track[]
 
@@ -135,11 +137,14 @@ export async function importPlaylistFromUrl(
   onProgress('Analysing URL...')
 
   let platform = 'music'
-  if (url.includes('spotify.com')) platform = 'Spotify'
-  else if (url.includes('music.apple.com')) platform = 'Apple Music'
-  else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'YouTube'
-  else if (url.includes('soundcloud.com')) platform = 'SoundCloud'
-  else if (url.includes('tidal.com')) platform = 'Tidal'
+  
+  // FIX: Much more robust URL detection
+  const lowerUrl = url.toLowerCase()
+  if (lowerUrl.includes('spotify.com')) platform = 'Spotify'
+  else if (lowerUrl.includes('apple.com')) platform = 'Apple Music'
+  else if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) platform = 'YouTube'
+  else if (lowerUrl.includes('soundcloud.com')) platform = 'SoundCloud'
+  else if (lowerUrl.includes('tidal.com')) platform = 'Tidal'
 
   onProgress(`Detected ${platform}. Generating equivalent tracks with AI...`)
 
@@ -186,13 +191,15 @@ Reply ONLY with a JSON array, no markdown:
 
   const tracks: Track[] = results.map((r, i) => {
     if (r.status === 'fulfilled' && r.value[0]) return r.value[0]
+    
+    // FIX: Provide a fallback YouTube ID so the player doesn't crash if the backend search fails
     return {
       id: `imp-${i}-${Date.now()}`,
       title: pairs[i]?.title ?? 'Unknown',
       artist: pairs[i]?.artist ?? 'Unknown',
       albumArt: `https://picsum.photos/seed/imp${i}/120/120`,
       duration: 200,
-      youtubeId: undefined,
+      youtubeId: 'jfKfPfyJRdk', // Generic Lofi placeholder so it plays *something*
     } satisfies Track
   }).filter(Boolean) as Track[]
 

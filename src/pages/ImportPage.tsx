@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import type { Playlist, Track } from '../types'
-// THIS IS THE MAGIC FIX: We import your actual AI services!
-import { generatePlaylistFromPrompt, importPlaylistFromUrl } from '../services/groq'
+
+// 1. GET AI FOR THE PROMPT
+import { generatePlaylistFromPrompt } from '../services/groq'
+// 2. GET REAL SCRAPER FOR THE URL
+import { importPlaylistFromBackend } from '../services/importApi'
 
 interface ImportPageProps {
   onSavePlaylist: (playlist: Playlist) => void 
@@ -41,19 +44,20 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
     }
   }
 
-  // --- REAL URL IMPORT ---
+  // --- REAL URL IMPORT (Scraping the actual songs) ---
   const handleUrlImport = async () => {
     if (!url.trim()) return
     setIsGenerating(true)
-    setStatusMsg('Analysing URL...')
+    setStatusMsg('Sending URL to backend scraper...')
 
     try {
-      const newPlaylist = await importPlaylistFromUrl(url, setStatusMsg)
+      // THIS NOW CALLS YOUR NODE.JS BACKEND TO PHYSICALLY READ THE PLAYLIST
+      const newPlaylist = await importPlaylistFromBackend(url, setStatusMsg)
       onSavePlaylist(newPlaylist)
       if (onNavigate) onNavigate('library')
     } catch (err: any) {
       console.error(err)
-      alert(err.message || 'Failed to import playlist.')
+      alert(err.message || 'Failed to import playlist. Make sure your backend server is running!')
     } finally {
       setIsGenerating(false)
       setStatusMsg('')

@@ -24,14 +24,26 @@ const GUEST_USER = {
 function GlintApp() {
   const { user, loading, isDemo } = useAuth()
   const [page, setPage] = useState<Page>('home')
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
-  const [liked, setLiked] = useState<Track[]>([])
   const [guestMode, setGuestMode] = useState(false)
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
+  
+  // --- TELEPORT STATE ---
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    const saved = localStorage.getItem('glint-playlists')
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  const [liked, setLiked] = useState<Track[]>(() => {
+    const saved = localStorage.getItem('glint-liked')
+    return saved ? JSON.parse(saved) : []
+  })
 
   const player = usePlayer()
   const activeUser = user ?? (guestMode ? GUEST_USER : null)
 
+  // One Single Player Hook for the whole app
   useYouTubePlayer({
     videoId: player.currentTrack?.youtubeId ?? null,
     isPlaying: player.isPlaying,
@@ -40,29 +52,29 @@ function GlintApp() {
     onDuration: player.handleDuration,
     onEnded: player.handleEnded,
     seekTo: player.seekTo,
+    containerId: 'youtube-main-player' 
   })
 
-  // Load data
   useEffect(() => {
-    if (user && !isDemo) {
-      loadPlaylists(user.id).then(d => setPlaylists(d as Playlist[]))
-      loadLiked(user.id).then(d => setLiked(d as Track[]))
-    }
-  }, [user, isDemo])
-
-  // Save playlists
-  useEffect(() => {
-    if (user && !isDemo) {
-      savePlaylists(user.id, playlists)
-    }
+    localStorage.setItem('glint-playlists', JSON.stringify(playlists))
+    if (user && !isDemo) savePlaylists(user.id, playlists)
   }, [playlists, user, isDemo])
 
-  // Save liked
+  useEffect(() => {
+    localStorage.setItem('glint-liked', JSON.stringify(liked))
+    if (user && !isDemo) saveLiked(user.id, liked)
+  }, [liked, user, isDemo])
+
   useEffect(() => {
     if (user && !isDemo) {
-      saveLiked(user.id, liked)
+      loadPlaylists(user.id).then(d => {
+        if (d && (d as Playlist[]).length > 0) setPlaylists(d as Playlist[])
+      })
+      loadLiked(user.id).then(d => {
+        if (d && (d as Track[]).length > 0) setLiked(d as Track[])
+      })
     }
-  }, [liked, user, isDemo])
+  }, [user, isDemo])
 
   const handleSavePlaylist = useCallback((pl: Playlist) => {
     setPlaylists(prev =>
@@ -74,40 +86,20 @@ function GlintApp() {
 
   const handleLike = useCallback(() => {
     if (!player.currentTrack) return
-
     const track = player.currentTrack
-
     setLiked(prev =>
       prev.some(t => t.id === track.id)
         ? prev.filter(t => t.id !== track.id)
         : [track, ...prev]
     )
-
     player.setLiked(!player.liked)
   }, [player])
 
-  const isLiked = player.currentTrack
-    ? liked.some(t => t.id === player.currentTrack!.id)
-    : false
+  const isLiked = player.currentTrack ? liked.some(t => t.id === player.currentTrack!.id) : false
 
-  // 🔻 Loading Screen
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#121212] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-green-500 border-t-transparent animate-spin" />
-          <p className="text-sm text-gray-400">Loading Glint...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center bg-[#121212] text-white">Loading...</div>
+  if (!activeUser) return <AuthPage onAuth={() => setGuestMode(true)} isDemo={isDemo} />
 
-  // 🔻 Auth
-  if (!activeUser) {
-    return <AuthPage onAuth={() => setGuestMode(true)} isDemo={isDemo} />
-  }
-
-  // 🔻 Page Router
   const pageContent = () => {
     if (editingPlaylist) {
       return (
@@ -125,49 +117,50 @@ function GlintApp() {
     }
 
     switch (page) {
-      case 'home':
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
-      case 'search':
-        return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      case 'library':
-        return (
-          <LibraryPage
-            liked={liked}
-            playlists={playlists}
-            onPlay={player.playTrack}
-            currentTrack={player.currentTrack}
-            onLike={handleLike}
-            onEditPlaylist={setEditingPlaylist}
-          />
-        )
-      case 'import':
-        return <ImportPage onSavePlaylist={handleSavePlaylist} onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      case 'profile':
-        return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      default:
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
+      case 'home': return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
+      case 'search': return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
+      case 'library': return <LibraryPage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} onLike={handleLike} onEditPlaylist={setEditingPlaylist} onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} onNavigate={setPage} />
+      case 'import': return <ImportPage onSavePlaylist={handleSavePlaylist} onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
+      case 'profile': return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
+      default: return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={setPage} />
     }
   }
 
   return (
-    <div className="flex h-screen bg-[#121212] text-white overflow-hidden">
+    <div className="flex h-screen bg-[#121212] text-white overflow-hidden relative">
+      
+      {/* 🚀 THE TELEPORTING PLAYER BOX */}
+      <div 
+        className={`transition-all duration-500 overflow-hidden ${
+          isFullscreen 
+            ? 'fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-3xl' 
+            : 'absolute top-0 left-0 w-[250px] h-[250px] opacity-0 pointer-events-none -z-50'
+        }`}
+      >
+        <div 
+          id="youtube-main-player" 
+          className={`transition-all duration-500 ${
+            isFullscreen ? 'w-full max-w-5xl aspect-video rounded-3xl shadow-[0_0_100px_rgba(0,230,40,0.2)] border border-white/10' : 'w-full h-full'
+          }`}
+        />
+        
+        {isFullscreen && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <h2 className="text-2xl font-black text-white">{player.currentTrack?.title}</h2>
+            <button 
+              onClick={() => setIsFullscreen(false)}
+              className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full text-sm font-bold backdrop-blur-md transition-colors border border-white/10"
+            >
+              ✕ Close Video
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Sidebar */}
-      <Sidebar
-        currentPage={page}
-        onNavigate={setPage}
-        playlists={playlists}
-        onPlayPlaylist={pl => pl.tracks[0] && player.playTrack(pl.tracks[0], pl.tracks)}
-        currentTrack={player.currentTrack}
-      />
+      <Sidebar currentPage={page} onNavigate={setPage} playlists={playlists} onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} currentTrack={player.currentTrack} />
 
-      {/* Main */}
       <main className="flex flex-1 flex-col overflow-hidden">
-
-        <div className="flex-1 overflow-y-auto">
-          {pageContent()}
-        </div>
-
+        <div className="flex-1 overflow-y-auto">{pageContent()}</div>
         <PlayerBar
           track={player.currentTrack}
           isPlaying={player.isPlaying}
@@ -185,11 +178,15 @@ function GlintApp() {
           onRepeat={() => player.setRepeat(r => !r)}
           onLike={handleLike}
           onVolumeChange={player.setVolume}
+          // PASSING THE TELEPORT PROPS
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
         />
       </main>
     </div>
   )
 }
+
 export default function App() {
   return (
     <AuthProvider>

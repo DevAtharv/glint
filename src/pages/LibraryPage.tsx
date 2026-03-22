@@ -1,16 +1,19 @@
 import React, { useState } from 'react'
-import type { Playlist, Track } from '../types'
+// 1. ADD 'Page' to this import!
+import type { Playlist, Track, Page } from '../types' 
 import { useAuth } from '../hooks/useAuth'
 
 interface LibraryPageProps {
   playlists: Playlist[]
+  liked: Track[]                 
+  onLike: () => void             
   onPlayPlaylist: (pl: Playlist) => void
   onPlay: (track: Track, queue?: Track[]) => void
   currentTrack: Track | null
-  onNavigate: (page: 'search' | 'import' | 'profile' | 'home') => void
-  onEditPlaylist: (pl: Playlist) => void // <-- ADDED THIS PROP
+  // 2. CHANGE THIS LINE to use your official Page type
+  onNavigate: (page: Page) => void 
+  onEditPlaylist: (pl: Playlist) => void 
 }
-
 // --- Pure SVG Icons ---
 const Icons = {
   Search: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
@@ -34,8 +37,7 @@ const RECENT_FAVORITES: Track[] = [
   { id: 'f4', title: 'Midnight City', artist: 'The Echoes', albumArt: 'https://images.unsplash.com/photo-1520166012956-add9ba0ee3f4?w=500&q=80', duration: 321, youtubeId: '' },
 ]
 
-export default function LibraryPage({ playlists, onPlayPlaylist, onPlay, currentTrack, onNavigate, onEditPlaylist }: LibraryPageProps) {
-  const { user } = useAuth()
+export default function LibraryPage({ playlists = [], liked = [], onLike, onPlayPlaylist, onPlay, currentTrack, onNavigate, onEditPlaylist }: LibraryPageProps) {  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'liked' | 'playlists' | 'albums' | 'artists'>('liked')
   const userName = user?.name?.split(' ')[0] || 'User'
 
@@ -157,8 +159,7 @@ export default function LibraryPage({ playlists, onPlayPlaylist, onPlay, current
                     </div>
                   </div>
                   <h4 className="font-bold text-base text-white truncate">{pl.name}</h4>
-                  <p className="text-sm text-white/40 font-medium truncate">By {userName} • {pl.tracks.length} songs</p>
-                </div>
+                <p className="text-sm text-white/40 font-medium truncate">By {userName} • {pl.tracks?.length || 0} songs</p>                </div>
               ))
             ) : (
               <div className="col-span-full py-8 text-center text-white/40 border border-white/5 border-dashed rounded-xl">
