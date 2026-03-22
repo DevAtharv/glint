@@ -14,7 +14,7 @@ interface ProfilePageProps {
 export default function ProfilePage({ liked, playlists, onPlay, currentTrack }: ProfilePageProps) {
   const { user, isDemo } = useAuth()
 
-  // Fallback to your name if metadata is missing
+  // Fallback to name if metadata is missing
   const displayName = user?.user_metadata?.name || 'Atharv'
   const displayEmail = user?.email || 'demo.mode@glint.app'
 
@@ -88,7 +88,7 @@ export default function ProfilePage({ liked, playlists, onPlay, currentTrack }: 
                   track={track} 
                   isActive={currentTrack?.id === track.id} 
                   onPlay={(t) => onPlay(t, liked)} 
-                  onLike={() => {}} // Disabled on profile page to keep it clean
+                  onLike={() => {}} 
                   isLiked={true} 
                 />
               ))}
@@ -124,8 +124,7 @@ export default function ProfilePage({ liked, playlists, onPlay, currentTrack }: 
             </button>
           </div>
         </div>
-
       </div>
     </div>
   )
-}cl
+}
