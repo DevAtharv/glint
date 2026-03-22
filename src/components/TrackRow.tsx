@@ -1,57 +1,67 @@
 import React from 'react'
 import type { Track } from '../types'
-import { formatTime } from '../utils/helpers'
 
 interface TrackRowProps {
   track: Track
-  index: number
-  isActive?: boolean
+  isActive: boolean
   onPlay: (track: Track) => void
+  onLike?: () => void
+  isLiked?: boolean
 }
 
-export default function TrackRow({ track, index, isActive, onPlay }: TrackRowProps) {
-  const canPlay = !!track.youtubeId
+export default function TrackRow({ track, isActive, onPlay, onLike, isLiked }: TrackRowProps) {
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
   return (
-    <button
-      type="button"
-      onClick={() => canPlay && onPlay(track)}
-      disabled={!canPlay}
-      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
-        isActive
-          ? 'bg-[rgba(108,99,255,0.12)]'
-          : canPlay
-            ? 'hover:bg-white/5'
-            : 'cursor-not-allowed opacity-50'
+    <div 
+      onClick={() => onPlay(track)}
+      className={`group grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_100px] items-center gap-4 px-4 py-3 rounded-xl transition-all cursor-pointer ${
+        isActive ? 'bg-[#00e628]/10' : 'hover:bg-white/5'
       }`}
     >
-      <div className="w-7 shrink-0 text-center text-xs text-[#6B6F85] sm:w-8 sm:text-sm">
-        {index + 1}
-      </div>
-
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <img
-          src={track.albumArt || `https://picsum.photos/seed/${index}/120/120`}
-          alt={track.title}
-          className="h-11 w-11 shrink-0 rounded-lg object-cover sm:h-12 sm:w-12"
+      {/* ART & TITLES */}
+      <div className="flex items-center gap-3 min-w-0">
+        <img 
+          src={track.albumArt || 'https://placehold.co/96x96/png'} 
+          alt="" 
+          className="h-10 w-10 lg:h-12 lg:w-12 shrink-0 rounded-lg object-cover shadow-lg" 
         />
-
-        <div className="min-w-0 flex-1">
-          <p className={`truncate text-sm font-medium ${isActive ? 'text-[#8B85FF]' : 'text-[#EEF0FF]'}`}>
+        <div className="min-w-0">
+          <p className={`truncate text-sm font-bold leading-tight ${isActive ? 'text-[#00e628]' : 'text-white'}`}>
             {track.title}
           </p>
-
-          <p className="truncate text-xs text-[#A0A3B1]">
+          {/* Stacks artist under title on mobile ONLY */}
+          <p className="truncate text-[10px] text-white/40 font-bold uppercase tracking-tight mt-0.5 md:hidden">
             {track.artist}
-            {!canPlay && <span className="ml-2 text-amber-400">· Not playable</span>}
-            {track.plays && <span className="ml-2 text-[#6B6F85]">· {track.plays} plays</span>}
+          </p>
+          {/* Shows artist in its own column on Desktop */}
+          <p className="hidden md:block truncate text-xs text-white/40 font-bold uppercase">
+            {track.artist}
           </p>
         </div>
       </div>
 
-      <span className="shrink-0 text-xs text-[#6B6F85] sm:text-sm">
-        {formatTime(track.duration)}
-      </span>
-    </button>
+      {/* ALBUM COLUMN (Hidden on Mobile) */}
+      <div className="hidden md:block truncate text-sm text-white/20 font-bold uppercase tracking-widest">
+        Single
+      </div>
+
+      {/* ACTIONS & TIME */}
+      <div className="flex items-center justify-end gap-6">
+        {onLike && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onLike(); }}
+            className={`text-lg transition-transform active:scale-150 ${isLiked ? 'text-[#00e628]' : 'text-white/10 hover:text-white'}`}
+          >
+            {isLiked ? '♥' : '♡'}
+          </button>
+        )}
+        <span className="hidden md:block text-xs font-mono text-white/20 w-10 text-right">
+          {formatTime(track.duration || 0)}
+        </span>
+        {/* Mobile Play Indicator */}
+        <div className="md:hidden text-[#00e628] text-sm font-black">▶</div>
+      </div>
+    </div>
   )
 }
