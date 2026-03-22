@@ -69,6 +69,8 @@ function scoreTrack(query: string, track: Track): number {
 
 export async function searchYouTube(searchQuery: string, maxResults = 10): Promise<Track[]> {
   const q = searchQuery.trim()
+  
+  // Only return default fallbacks if the user literally searched for an empty string
   if (!q) return FALLBACK_TRACKS.slice(0, maxResults)
 
   try {
@@ -93,17 +95,27 @@ export async function searchYouTube(searchQuery: string, maxResults = 10): Promi
         }
       }
     }
-  } catch {
-    // fall through to local fallback
+  } catch (err) {
+    // Backend failed or timed out, fall through to local fallback below
+    console.warn("Backend search failed:", err)
   }
 
+  // FALLBACK LOGIC:
   const scored = FALLBACK_TRACKS
     .map(track => ({ track, score: scoreTrack(q, track) }))
-    .filter(x => x.score > 0)
+    .filter(x => x.score > 20) // Require a decent match score, not just > 0
     .sort((a, b) => b.score - a.score)
     .map(x => x.track)
 
-  return scored.length > 0 ? scored.slice(0, maxResults) : FALLBACK_TRACKS.slice(0, maxResults)
+  // THE MAGIC FIX: 
+  // If we found a good match in our fallback list, return it.
+  // IF NOT, return an empty array []! 
+  // Returning [] tells the AI script: "I couldn't find the real audio, but you should keep the AI Title and Artist anyway!"
+  if (scored.length > 0) {
+    return scored.slice(0, maxResults)
+  }
+
+  return [] 
 }
 
 export async function getStreamUrl(videoId: string): Promise<string | null> {
