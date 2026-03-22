@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import type { Playlist, Track } from '../types'
-// IMPORT THE REAL SERVICES:
+// THIS IS THE MAGIC FIX: We import your actual AI services!
 import { generatePlaylistFromPrompt, importPlaylistFromUrl } from '../services/groq'
 
 interface ImportPageProps {
   onSavePlaylist: (playlist: Playlist) => void 
-  onNavigate?: (page: string) => void
+  onNavigate?: (page: any) => void
   onPlay?: (track: Track) => void
   currentTrack?: Track | null
 }
@@ -20,7 +20,7 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
   const [prompt, setPrompt] = useState('')
   const [url, setUrl] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [statusMsg, setStatusMsg] = useState('') // Shows the user what the AI is doing
+  const [statusMsg, setStatusMsg] = useState('') // This shows the cool terminal loading steps!
 
   // --- REAL AI GENERATION ---
   const handleGenerate = async () => {
@@ -29,7 +29,6 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
     setStatusMsg('Initializing AI...')
 
     try {
-      // Calls your actual groq.ts file!
       const newPlaylist = await generatePlaylistFromPrompt(prompt, setStatusMsg)
       onSavePlaylist(newPlaylist)
       if (onNavigate) onNavigate('library')
@@ -46,10 +45,9 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
   const handleUrlImport = async () => {
     if (!url.trim()) return
     setIsGenerating(true)
-    setStatusMsg('Initializing Import...')
+    setStatusMsg('Analysing URL...')
 
     try {
-      // Calls your actual groq.ts file!
       const newPlaylist = await importPlaylistFromUrl(url, setStatusMsg)
       onSavePlaylist(newPlaylist)
       if (onNavigate) onNavigate('library')
@@ -70,6 +68,7 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
           <p className="text-white/50 max-w-lg">Migrate your library or generate brand new moods using our high-fidelity engine.</p>
         </header>
 
+        {/* LOADING STATUS BAR */}
         {statusMsg && (
           <div className="mb-6 p-4 bg-[#00e628]/10 border border-[#00e628]/30 rounded-lg text-[#00e628] font-mono text-sm flex items-center gap-3 animate-pulse">
             <div className="w-4 h-4 rounded-full border-2 border-[#00e628] border-t-transparent animate-spin"></div>
