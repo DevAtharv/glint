@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { signIn, signUp } from '../services/supabase'
 
 interface Props {
   onAuth: () => void
+  onGuest?: () => void // Added Guest handler
   isDemo?: boolean
 }
 
-export default function AuthPage({ onAuth, isDemo }: Props) {
+export default function AuthPage({ onAuth, onGuest, isDemo }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,7 +27,6 @@ export default function AuthPage({ onAuth, isDemo }: Props) {
       } else {
         await signUp(email, password, name)
         setMode('login')
-        // Optional: clear password/name after successful registration
         setPassword('')
         setName('')
       }
@@ -37,113 +37,111 @@ export default function AuthPage({ onAuth, isDemo }: Props) {
     }
   }
 
-  // Optional helper for the demo prop you defined
-  const handleDemoLogin = async () => {
-    setEmail('demo@example.com')
-    setPassword('demo123')
-    // You can trigger handleSubmit here if you want it to auto-login
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4 text-zinc-100 font-sans tracking-wide">
-      <div className="w-full max-w-md bg-[#121212] border border-zinc-800/60 p-8 rounded-2xl shadow-2xl">
+    <div className="relative flex min-h-screen items-center justify-center bg-black p-4 font-sans tracking-wide overflow-hidden">
+      
+      {/* 🎵 CINEMATIC BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop" 
+          alt="Concert Background" 
+          className="w-full h-full object-cover opacity-40 grayscale-[0.3]"
+        />
+        {/* Dark gradient fade from bottom to top */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent" />
+      </div>
+
+      {/* ✨ GLASSMORPHISM AUTH CARD */}
+      <div className="relative z-10 w-full max-w-md bg-[#121212]/70 backdrop-blur-2xl border border-white/10 p-8 lg:p-10 rounded-[32px] shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-8 duration-700">
         
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {mode === 'login' ? 'Welcome back' : 'Create an account'}
+        {/* Logo Header */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="h-14 w-14 rounded-2xl bg-[#00e628] flex items-center justify-center font-black text-black text-3xl shadow-[0_0_30px_rgba(0,230,40,0.3)] mb-4">
+            G
+          </div>
+          <h2 className="text-3xl font-black text-white tracking-tighter">
+            {mode === 'login' ? 'GLINT AUDIO' : 'JOIN GLINT'}
           </h2>
-          <p className="text-zinc-400 text-sm">
-            {mode === 'login' 
-              ? 'Enter your details to access your account' 
-              : 'Sign up to get started with our platform'}
+          <p className="text-white/50 text-xs font-bold uppercase tracking-[0.2em] mt-2">
+            {mode === 'login' ? 'Enter the matrix' : 'Deploy your account'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-y-4">
           
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg text-center">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wide p-3 rounded-xl text-center">
               {error}
             </div>
           )}
 
           {mode === 'register' && (
             <div>
-              <label className="sr-only" htmlFor="name">Name</label>
               <input
-                id="name"
                 type="text"
                 required
                 placeholder="Full Name"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-600"
+                className="w-full px-5 py-4 bg-black/50 border border-white/10 rounded-2xl focus:outline-none focus:border-[#00e628] text-white font-bold transition-all placeholder:text-white/20"
               />
             </div>
           )}
 
           <div>
-            <label className="sr-only" htmlFor="email">Email</label>
             <input
-              id="email"
               type="email"
               required
               placeholder="Email address"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0a0a0a] border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-600"
+              className="w-full px-5 py-4 bg-black/50 border border-white/10 rounded-2xl focus:outline-none focus:border-[#00e628] text-white font-bold transition-all placeholder:text-white/20"
             />
           </div>
 
           <div>
-            <label className="sr-only" htmlFor="password">Password</label>
             <input
-              id="password"
               type="password"
               required
               placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0a0a0a] border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-600"
+              className="w-full px-5 py-4 bg-black/50 border border-white/10 rounded-2xl focus:outline-none focus:border-[#00e628] text-white font-bold transition-all placeholder:text-white/20"
             />
           </div>
 
           <button 
             type="submit"
             disabled={loading}
-            className="mt-2 w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold py-3 px-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
+            className="mt-4 w-full bg-[#00e628] hover:bg-[#00e628]/90 text-black font-black uppercase tracking-widest py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_30px_rgba(0,230,40,0.2)]"
           >
-            {loading ? (
-              <svg className="animate-spin h-5 w-5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : mode === 'login' ? 'Log in' : 'Sign up'}
+            {loading ? 'Processing...' : mode === 'login' ? 'Initialize' : 'Create Profile'}
           </button>
 
-          {isDemo && mode === 'login' && (
-            <button 
-              type="button"
-              onClick={handleDemoLogin}
-              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-3 px-4 rounded-xl transition-all"
-            >
-              Try Demo Login
-            </button>
-          )}
-
-          <p className="text-zinc-400 text-sm text-center mt-4">
-            {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+          <p className="text-white/40 text-xs font-bold text-center mt-4 uppercase tracking-wider">
+            {mode === 'login' ? "New to Glint?" : "Have an account?"}{' '}
             <button
               type="button"
-              className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors focus:outline-none focus:underline"
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login')
-                setError('') // Clear errors when switching modes
-              }}
+              className="text-[#00e628] hover:text-white transition-colors"
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
             >
               {mode === 'login' ? 'Sign up' : 'Log in'}
             </button>
           </p>
+
+          {/* 🎧 THE GUEST MODE BUTTON */}
+          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col items-center">
+            <button 
+              type="button"
+              onClick={onGuest}
+              className="w-full py-4 rounded-2xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[10px] transition-all"
+            >
+              Listen as Guest
+            </button>
+            <p className="text-[9px] text-white/20 uppercase tracking-widest mt-3 text-center">
+              Guest data saves locally to your device
+            </p>
+          </div>
 
         </form>
       </div>

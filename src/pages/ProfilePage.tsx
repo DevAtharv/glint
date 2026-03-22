@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import type { Track, Playlist } from '../types'
+import React from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { signOut } from '../services/supabase'
 import TrackRow from '../components/TrackRow'
+import type { Track, Playlist } from '../types'
 
 interface ProfilePageProps {
   liked: Track[]
@@ -11,139 +12,120 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ liked, playlists, onPlay, currentTrack }: ProfilePageProps) {
-  const { user, signOut } = useAuth()
-  const [signingOut, setSigningOut] = useState(false)
+  const { user, isDemo } = useAuth()
 
-  const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U'
+  // Fallback to your name if metadata is missing
+  const displayName = user?.user_metadata?.name || 'Atharv'
+  const displayEmail = user?.email || 'demo.mode@glint.app'
 
-  const totalMins = liked.reduce((acc, t) => acc + (t.duration || 0), 0)
-  const hours = Math.round(totalMins / 60)
-
-  const handleSignOut = async () => {
-    setSigningOut(true)
-    try {
-      await signOut()
-    } finally {
-      setSigningOut(false)
+  const handleLogout = async () => {
+    if (isDemo) {
+      window.location.reload()
+      return
     }
+    await signOut()
+    window.location.reload()
   }
 
-  const statCards = [
-    { v: liked.length, l: 'Liked Songs', c: '#FF4D6D', bg: 'rgba(255,77,109,.08)' },
-    { v: playlists.length, l: 'Playlists', c: '#8B85FF', bg: 'rgba(108,99,255,.08)' },
-    { v: `${hours}h`, l: 'Hours Listened', c: '#2DD881', bg: 'rgba(45,216,129,.08)' },
-    { v: playlists.filter(p => p.id.startsWith('ai-')).length, l: 'AI Playlists', c: '#f5a623', bg: 'rgba(245,166,35,.08)' },
-  ]
+  // Grab the last 5 liked songs for the "Recent Activity" section
+  const recentLikes = liked.slice(0, 5)
 
   return (
-    <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-      <div className="mb-8 rounded-3xl border border-white/10 bg-[linear-gradient(135deg,#141720,#0E1018)] p-5 sm:p-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-indigo-500 font-serif text-3xl text-white">
-            {initials}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate font-serif text-3xl text-[#EEF0FF]">
-              {user?.name ?? 'User'}
-            </h2>
-            <p className="mt-1 truncate text-sm text-[#A0A3B1]">{user?.email}</p>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-indigo-500/20 bg-[rgba(108,99,255,0.12)] px-3 py-1 text-xs font-bold text-[#8B85FF]">
-                Free Plan
-              </span>
-              <span className="rounded-full border border-emerald-500/15 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
-                Ad-free
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:w-[160px]">
-            <button
-              type="button"
-              className="rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-[#A0A3B1] transition hover:bg-white/5 hover:text-[#EEF0FF]"
-            >
-              Edit Profile
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="rounded-2xl border border-rose-500/15 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {signingOut ? 'Signing out...' : 'Sign Out'}
-            </button>
+    <div className="p-4 lg:p-10 pb-40 max-w-5xl mx-auto animate-in fade-in duration-500">
+      
+      {/* 1. HERO SECTION */}
+      <header className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-12 lg:mb-16 text-center md:text-left">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-[#00e628] rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+          <div className="h-32 w-32 lg:h-48 lg:w-48 rounded-full bg-gradient-to-br from-[#121212] to-[#2a2a2a] border-2 border-white/10 flex items-center justify-center relative z-10 shadow-2xl overflow-hidden">
+            <span className="text-5xl lg:text-7xl font-black text-white/50 uppercase">
+              {displayName.charAt(0)}
+            </span>
           </div>
         </div>
-      </div>
-
-      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {statCards.map(({ v, l, c, bg }) => (
-          <div key={l} className="rounded-3xl border border-white/10 bg-[#11131A] p-4 sm:p-5">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: bg }}>
-              <div className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />
-            </div>
-            <p className="font-serif text-3xl text-[#EEF0FF]">{v}</p>
-            <p className="mt-1 text-xs font-semibold" style={{ color: c }}>
-              {l}
-            </p>
+        
+        <div className="flex-1 pb-2">
+          <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+            <span className="bg-white/10 border border-white/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-[#00e628]">
+              {isDemo ? 'Guest Account' : 'Verified User'}
+            </span>
           </div>
-        ))}
-      </div>
-
-      {liked.length > 0 && (
-        <div className="mb-8">
-          <h3 className="mb-4 font-serif text-2xl text-[#EEF0FF]">Recently Liked</h3>
-          <div className="space-y-2">
-            {liked.slice(0, 6).map((t, i) => (
-              <TrackRow
-                key={t.id}
-                track={t}
-                index={i}
-                isActive={currentTrack?.id === t.id}
-                onPlay={tr => onPlay(tr, liked)}
-              />
-            ))}
-          </div>
+          <h1 className="text-4xl lg:text-7xl font-black tracking-tighter mb-1">{displayName}</h1>
+          <p className="text-white/40 font-bold text-sm lg:text-base">{displayEmail}</p>
         </div>
-      )}
+      </header>
 
-      {playlists.length > 0 && (
+      {/* 2. STATS GRID */}
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+        <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg hover:bg-white/10 transition-colors">
+          <span className="text-4xl mb-2">💜</span>
+          <p className="text-3xl font-black text-white">{liked.length}</p>
+          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Saved Tracks</p>
+        </div>
+        <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg hover:bg-white/10 transition-colors">
+          <span className="text-4xl mb-2">💽</span>
+          <p className="text-3xl font-black text-white">{playlists.length}</p>
+          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Playlists</p>
+        </div>
+        <div className="col-span-2 md:col-span-1 bg-[#00e628]/10 border border-[#00e628]/20 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+          <span className="text-4xl mb-2">✨</span>
+          <p className="text-3xl font-black text-[#00e628]">Active</p>
+          <p className="text-[10px] text-[#00e628]/60 font-bold uppercase tracking-widest mt-1">Neural Engine</p>
+        </div>
+      </section>
+
+      {/* 3. RECENT ACTIVITY & SETTINGS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
+        {/* Left Col: Recent Likes */}
+        <div className="lg:col-span-2">
+          <h2 className="text-xl font-black tracking-tight mb-6">Recently Liked</h2>
+          {recentLikes.length > 0 ? (
+            <div className="space-y-1 bg-white/5 border border-white/5 rounded-3xl p-2">
+              {recentLikes.map(track => (
+                <TrackRow 
+                  key={track.id} 
+                  track={track} 
+                  isActive={currentTrack?.id === track.id} 
+                  onPlay={(t) => onPlay(t, liked)} 
+                  onLike={() => {}} // Disabled on profile page to keep it clean
+                  isLiked={true} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+              <p className="text-white/40 font-bold text-sm">No recent activity. Start liking songs!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Col: Account Settings */}
         <div>
-          <h3 className="mb-4 font-serif text-2xl text-[#EEF0FF]">Your Playlists</h3>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {playlists.map(pl => (
-              <button
-                key={pl.id}
-                type="button"
-                onClick={() => pl.tracks[0] && onPlay(pl.tracks[0], pl.tracks)}
-                className="group rounded-3xl border border-white/10 bg-[#11131A] p-4 text-left transition hover:bg-[#171923]"
-              >
-                <div className="relative mb-3">
-                  <img
-                    src={pl.cover}
-                    alt={pl.name}
-                    className="aspect-square w-full rounded-2xl object-cover"
-                  />
-                  <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 opacity-0 shadow-lg transition group-hover:opacity-100">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-
-                <p className="truncate text-sm font-semibold text-[#EEF0FF]">{pl.name}</p>
-                <p className="mt-1 text-xs text-[#A0A3B1]">{pl.tracks.length} tracks</p>
-              </button>
-            ))}
+          <h2 className="text-xl font-black tracking-tight mb-6">Account</h2>
+          <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4">
+            <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 font-bold text-sm transition-colors flex justify-between items-center group">
+              Account Details <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+            </button>
+            <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 font-bold text-sm transition-colors flex justify-between items-center group">
+              Audio Quality <span className="text-white/40 text-xs">High</span>
+            </button>
+            <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 font-bold text-sm transition-colors flex justify-between items-center group">
+              Appearance <span className="text-[#00e628] text-xs">Dark Mode</span>
+            </button>
+            
+            <div className="h-[1px] bg-white/10 w-full my-4" />
+            
+            <button 
+              onClick={handleLogout}
+              className="w-full py-4 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[10px] transition-all"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
-      )}
+
+      </div>
     </div>
   )
-}
+}cl

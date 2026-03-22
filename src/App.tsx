@@ -18,6 +18,7 @@ function GlintApp() {
   const { user, loading, isDemo } = useAuth()
   const [page, setPage] = useState<Page>('home')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [guestMode, setGuestMode] = useState(false) 
   
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
