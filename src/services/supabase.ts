@@ -10,9 +10,7 @@ export const supabase = hasSupabase
   : null
 
 export async function signUp(email: string, password: string, name: string) {
-  if (!supabase) {
-    throw new Error('Supabase not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your frontend environment variables.')
-  }
+  if (!supabase) throw new Error('Supabase not configured. Check your .env file.')
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -25,9 +23,7 @@ export async function signUp(email: string, password: string, name: string) {
 }
 
 export async function signIn(email: string, password: string) {
-  if (!supabase) {
-    throw new Error('Supabase not configured.')
-  }
+  if (!supabase) throw new Error('Supabase not configured.')
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
@@ -45,7 +41,12 @@ export async function getSession() {
 }
 
 export async function savePlaylists(userId: string, playlists: unknown[]) {
-  if (!supabase) return
+  if (!supabase) {
+    console.warn("Skipping Cloud Save: Supabase is missing.")
+    return
+  }
+
+  console.log("Attempting to save playlists to Supabase for user:", userId)
 
   const { error } = await supabase.from('glint_playlists').upsert({
     user_id: userId,
@@ -53,7 +54,12 @@ export async function savePlaylists(userId: string, playlists: unknown[]) {
     updated_at: new Date().toISOString(),
   })
 
-  if (error) throw error
+  if (error) {
+    console.error("❌ SUPABASE PLAYLIST SAVE ERROR:", error)
+    throw error
+  } else {
+    console.log("✅ Playlists successfully saved to cloud!")
+  }
 }
 
 export async function loadPlaylists(userId: string) {
@@ -65,7 +71,11 @@ export async function loadPlaylists(userId: string) {
     .eq('user_id', userId)
     .single()
 
-  if (error) return []
+  if (error) {
+    // PGRST116 means no rows found, which is normal for a brand new user
+    if (error.code !== 'PGRST116') console.error("❌ SUPABASE PLAYLIST LOAD ERROR:", error)
+    return []
+  }
   return (data?.data as unknown[]) ?? []
 }
 
@@ -78,7 +88,10 @@ export async function saveLiked(userId: string, tracks: unknown[]) {
     updated_at: new Date().toISOString(),
   })
 
-  if (error) throw error
+  if (error) {
+    console.error("❌ SUPABASE LIKED SAVE ERROR:", error)
+    throw error
+  }
 }
 
 export async function loadLiked(userId: string) {
@@ -90,6 +103,9 @@ export async function loadLiked(userId: string) {
     .eq('user_id', userId)
     .single()
 
-  if (error) return []
+  if (error) {
+    if (error.code !== 'PGRST116') console.error("❌ SUPABASE LIKED LOAD ERROR:", error)
+    return []
+  }
   return (data?.data as unknown[]) ?? []
 }

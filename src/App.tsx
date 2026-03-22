@@ -12,17 +12,19 @@ import ImportPage from './pages/ImportPage'
 import ProfilePage from './pages/ProfilePage'
 import EditPlaylistPage from './pages/EditPlaylistPage'
 import type { Page, Track, Playlist } from './types'
-import { savePlaylists, loadPlaylists, saveLiked, loadLiked } from './services/supabase'
+import { savePlaylists, loadPlaylists, saveLiked, loadLiked, supabase } from './services/supabase'
 
 function GlintApp() {
   const { user, loading, isDemo } = useAuth()
   const [page, setPage] = useState<Page>('home')
   const [isFullscreen, setIsFullscreen] = useState(false)
   
-  // 🛠 Added state to handle editing
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [liked, setLiked] = useState<Track[]>([])
+  
+  // 🔒 THE SAFETY LOCK: Prevents overwriting cloud data on load
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
   
   const player = usePlayer()
 
@@ -37,22 +39,64 @@ function GlintApp() {
     containerId: 'youtube-main-player' 
   })
 
+  // 1️⃣ INITIAL LOAD: Fetch from Cloud first
   useEffect(() => {
     if (user && !isDemo) {
-      loadPlaylists(user.id).then((d: any) => { if (d) setPlaylists(d as Playlist[]) })
-      loadLiked(user.id).then((d: any) => { if (d) setLiked(d as Track[]) })
+      Promise.all([
+        loadPlaylists(user.id),
+        loadLiked(user.id)
+      ]).then(([p, l]) => {
+        if (p) setPlaylists(p as Playlist[])
+        if (l) setLiked(l as Track[])
+        setIsDataLoaded(true) // Unlock saving ONLY after load is complete
+      })
+    } else {
+      // Guest mode logic
+      const localP = localStorage.getItem('glint-playlists')
+      const localL = localStorage.getItem('glint-liked')
+      if (localP) setPlaylists(JSON.parse(localP))
+      if (localL) setLiked(JSON.parse(localL))
+      setIsDataLoaded(true)
     }
   }, [user, isDemo])
 
+  // 2️⃣ AUTO-SAVE: Only save if data has finished loading
   useEffect(() => {
+    if (!isDataLoaded) return 
+
     if (user && !isDemo) { 
-      savePlaylists(user.id, playlists); 
-      saveLiked(user.id, liked); 
+      // Using .catch() to prevent unhandled promise rejections
+      savePlaylists(user.id, playlists).catch(err => console.error("Save Playlist Failed:", err))
+      saveLiked(user.id, liked).catch(err => console.error("Save Liked Failed:", err))
+    } else {
+      localStorage.setItem('glint-playlists', JSON.stringify(playlists))
+      localStorage.setItem('glint-liked', JSON.stringify(liked))
     }
-  }, [playlists, liked, user, isDemo])
+  }, [playlists, liked, user, isDemo, isDataLoaded])
+
+// 3️⃣ REALTIME SYNC: Listen for phone/desktop changes instantly
+  useEffect(() => {
+    if (!user || isDemo || !supabase) return
+
+    const playlistChannel = supabase.channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'glint_playlists', filter: `user_id=eq.${user.id}` }, 
+        () => loadPlaylists(user.id).then((d: any) => { if (d) setPlaylists(d as Playlist[]) })
+      ).subscribe()
+
+    const likedChannel = supabase.channel('liked-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'glint_liked', filter: `user_id=eq.${user.id}` }, 
+        () => loadLiked(user.id).then((d: any) => { if (d) setLiked(d as Track[]) })
+      ).subscribe()
+
+    return () => {
+      // Add the ? right after supabase here!
+      supabase?.removeChannel(playlistChannel)
+      supabase?.removeChannel(likedChannel)
+    }
+  }, [user, isDemo])
 
   const handleNavigate = (newPage: Page) => {
-    setEditingPlaylist(null) // Close editor if navigating away
+    setEditingPlaylist(null)
     setPage(newPage)
   }
 
@@ -69,47 +113,17 @@ function GlintApp() {
   if (!user && !isDemo) return <AuthPage onAuth={() => {}} isDemo={false} />
 
   const renderPage = () => {
-    // 🛠 Render EditPlaylistPage if a playlist is selected for editing
     if (editingPlaylist) {
-      return (
-        <EditPlaylistPage 
-          playlist={editingPlaylist} 
-          onSave={(updatedPlaylist) => {
-            setPlaylists(prev => prev.map(p => p.id === updatedPlaylist.id ? updatedPlaylist : p))
-            setEditingPlaylist(null)
-          }} 
-          onBack={() => setEditingPlaylist(null)} 
-          onPlay={player.playTrack} 
-          currentTrack={player.currentTrack} 
-        />
-      )
+      return <EditPlaylistPage playlist={editingPlaylist} onSave={(updatedPlaylist) => { setPlaylists(prev => prev.map(p => p.id === updatedPlaylist.id ? updatedPlaylist : p)); setEditingPlaylist(null); }} onBack={() => setEditingPlaylist(null)} onPlay={player.playTrack} currentTrack={player.currentTrack} />
     }
 
     switch (page) {
-      case 'home': 
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} likedCount={liked.length} />
-      case 'search': 
-        return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      case 'library': 
-        return (
-          <LibraryPage 
-            liked={liked} 
-            playlists={playlists} 
-            onPlay={player.playTrack} 
-            currentTrack={player.currentTrack} 
-            onLike={handleLike} 
-            onEditPlaylist={setEditingPlaylist} // 🛠 Passed edit function
-            onDeletePlaylist={(id) => setPlaylists(prev => prev.filter(p => p.id !== id))} // 🛠 Passed delete function
-            onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} 
-            onNavigate={handleNavigate} 
-          />
-        )
-      case 'import': 
-        return <ImportPage onSavePlaylist={p => setPlaylists(prev => [p, ...prev])} onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} />
-      case 'profile': 
-        return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
-      default: 
-        return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} likedCount={liked.length} />
+      case 'home': return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} likedCount={liked.length} />
+      case 'search': return <SearchPage onPlay={player.playTrack} currentTrack={player.currentTrack} />
+      case 'library': return <LibraryPage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} onLike={handleLike} onEditPlaylist={setEditingPlaylist} onDeletePlaylist={(id) => setPlaylists(prev => prev.filter(p => p.id !== id))} onPlayPlaylist={pl => pl.tracks?.[0] && player.playTrack(pl.tracks[0], pl.tracks)} onNavigate={handleNavigate} />
+      case 'import': return <ImportPage onSavePlaylist={p => setPlaylists(prev => [p, ...prev])} onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} />
+      case 'profile': return <ProfilePage liked={liked} playlists={playlists} onPlay={player.playTrack} currentTrack={player.currentTrack} />
+      default: return <HomePage onPlay={player.playTrack} currentTrack={player.currentTrack} onNavigate={handleNavigate} likedCount={liked.length} />
     }
   }
 
@@ -131,9 +145,7 @@ function GlintApp() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center bg-[#121212]/95 backdrop-blur-xl border-t border-white/5 py-3 pb-6 px-4">
          {['home', 'search', 'library', 'import', 'profile'].map((p) => (
            <button key={p} onClick={() => handleNavigate(p as Page)} className={`flex flex-col items-center gap-1 transition-all ${page === p ? 'text-[#00e628] -translate-y-1' : 'text-white/40 hover:text-white/80'}`}>
-              <span className="text-xl">
-                {p === 'home' ? '🏠' : p === 'search' ? '🔍' : p === 'library' ? '📚' : p === 'import' ? '✨' : '👤'}
-              </span>
+              <span className="text-xl">{p === 'home' ? '🏠' : p === 'search' ? '🔍' : p === 'library' ? '📚' : p === 'import' ? '✨' : '👤'}</span>
               <span className="text-[9px] font-black uppercase tracking-widest">{p}</span>
            </button>
          ))}
