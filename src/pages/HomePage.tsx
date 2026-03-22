@@ -30,6 +30,26 @@ const FEATURED: Track[] = [
 
 const shuffleArray = (array: Track[]) => [...array].sort(() => Math.random() - 0.5)
 
+// 🎵 NEW: Smooth Animated Music Equalizer Icon
+function PlayingVisualizer({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill={color} className="opacity-90">
+      <rect x="4" y="16" width="3.5" height="4" rx="1.5">
+        <animate attributeName="height" values="4;14;4" dur="1s" repeatCount="indefinite" begin="0s" />
+        <animate attributeName="y" values="16;6;16" dur="1s" repeatCount="indefinite" begin="0s" />
+      </rect>
+      <rect x="10" y="16" width="3.5" height="4" rx="1.5">
+        <animate attributeName="height" values="4;16;4" dur="0.8s" repeatCount="indefinite" begin="0.2s" />
+        <animate attributeName="y" values="16;4;16" dur="0.8s" repeatCount="indefinite" begin="0.2s" />
+      </rect>
+      <rect x="16" y="16" width="3.5" height="4" rx="1.5">
+        <animate attributeName="height" values="4;12;4" dur="1.2s" repeatCount="indefinite" begin="0.4s" />
+        <animate attributeName="y" values="16;8;16" dur="1.2s" repeatCount="indefinite" begin="0.4s" />
+      </rect>
+    </svg>
+  )
+}
+
 export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageProps) {
   const { user } = useAuth()
   const [ytTracks, setYtTracks] = useState<Track[]>([])
@@ -125,15 +145,12 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
                     {track.title}
                   </p>
                   
-                  {/* Floating Neon Play Button */}
+                  {/* Floating Play Button / Music Visualizer */}
                   <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_0_30px_rgba(30,215,96,0.3)] transition-all duration-400 ease-out hover:scale-110 hover:bg-[#3be477] hover:shadow-[0_0_40px_rgba(30,215,96,0.6)] ${
                     isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
                   }`}>
                     {isPlaying ? (
-                      <div className="flex gap-[3px] items-center justify-center">
-                        <div className="w-1 h-3.5 bg-black animate-pulse rounded-full" />
-                        <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-75" />
-                      </div>
+                      <PlayingVisualizer color="black" />
                     ) : (
                       <svg className="ml-1 h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     )}
@@ -180,11 +197,7 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
                       }`}>
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-[0_10px_30px_rgba(30,215,96,0.5)] hover:bg-[#3be477] hover:scale-110 transition-all">
                           {isPlaying ? (
-                            <div className="flex gap-1 items-center justify-center h-full">
-                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full" />
-                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-75" />
-                              <div className="w-1 h-3.5 bg-black animate-pulse rounded-full delay-150" />
-                            </div>
+                            <PlayingVisualizer color="black" />
                           ) : (
                             <svg className="ml-1 h-7 w-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                           )}
@@ -214,7 +227,12 @@ export default function HomePage({ onPlay, currentTrack, onNavigate }: HomePageP
             
             {ytLoading && (
               <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-2xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#1ed760] shadow-[0_0_20px_rgba(30,215,96,0.15)]">
-                <div className="h-2 w-2 animate-ping rounded-full bg-[#1ed760]" />
+                {/* 💿 Spinning Record Loading Animation */}
+                <svg className="h-4 w-4 animate-[spin_2.5s_linear_infinite] text-[#1ed760]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 12l3-3" />
+                </svg>
                 Live Sync
               </div>
             )}
