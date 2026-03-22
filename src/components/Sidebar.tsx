@@ -2,12 +2,12 @@ import React from 'react'
 import type { Page, Playlist, Track } from '../types'
 
 interface SidebarProps {
-  currentPage: Page
-  onNavigate: (page: Page) => void
-  playlists: Playlist[]
-  liked: Track[] 
-  onPlayPlaylist: (pl: Playlist) => void
-  currentTrack: Track | null
+  currentPage: Page; 
+  onNavigate: (page: Page) => void;
+  playlists: Playlist[]; 
+  liked: Track[]; 
+  onPlayPlaylist: (pl: Playlist) => void; 
+  currentTrack: Track | null;
 }
 
 export default function Sidebar({ currentPage, onNavigate, playlists, liked, onPlayPlaylist }: SidebarProps) {
@@ -22,6 +22,7 @@ export default function Sidebar({ currentPage, onNavigate, playlists, liked, onP
         <button onClick={() => onNavigate('home')} className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 font-bold text-sm ${currentPage === 'home' ? 'bg-[#00e628]/10 text-[#00e628]' : 'text-white/40 hover:bg-white/5'}`}>🏠 Home</button>
         <button onClick={() => onNavigate('search')} className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 font-bold text-sm ${currentPage === 'search' ? 'bg-[#00e628]/10 text-[#00e628]' : 'text-white/40 hover:bg-white/5'}`}>🔍 Search</button>
         <button onClick={() => onNavigate('import')} className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 font-bold text-sm ${currentPage === 'import' ? 'bg-[#00e628]/10 text-[#00e628]' : 'text-white/40 hover:bg-white/5'}`}>✨ AI Import</button>
+        <button onClick={() => onNavigate('profile')} className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 font-bold text-sm ${currentPage === 'profile' ? 'bg-[#00e628]/10 text-[#00e628]' : 'text-white/40 hover:bg-white/5'}`}>👤 Profile</button>
       </nav>
 
       <div className="mb-10">
@@ -44,7 +45,7 @@ export default function Sidebar({ currentPage, onNavigate, playlists, liked, onP
 
       <footer className="mt-auto pt-6 border-t border-white/5">
         <p className="text-[10px] font-medium text-white/20">Build by <span className="text-white/50 font-bold">Atharv</span></p>
-        <a href="https://atharvagarwal.in" target="_blank" rel="noreferrer" className="text-[11px] font-black text-[#00e628] opacity-60 hover:opacity-100 transition-opacity tracking-tight">atharvagarwal.in</a>
+        <a href="https://atharvagarwal.in" target="_blank" rel="noreferrer" className="text-[11px] font-black text-[#00e628] opacity-60 hover:opacity-100 transition-opacity">atharvagarwal.in</a>
       </footer>
     </aside>
   )

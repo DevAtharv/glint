@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import type { Track, Playlist, Page } from '../types'
+import { generatePlaylistFromBackend, importPlaylistFromBackend } from '../services/importApi'
 
 interface ImportPageProps {
   onSavePlaylist: (pl: Playlist) => void
@@ -9,96 +10,70 @@ interface ImportPageProps {
 }
 
 export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPageProps) {
-  // --- AI GENERATION STATE ---
+  // --- STATE ---
   const [prompt, setPrompt] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [url, setUrl] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
   const logRef = useRef<HTMLDivElement>(null)
-
-  // --- URL SCRAPER STATE ---
-  const [url, setUrl] = useState('')
-  const [isImportingUrl, setIsImportingUrl] = useState(false)
 
   // Auto-scroll the terminal
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [logs])
 
+  // Terminal log function passed to your backend API
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `> ${new Date().toLocaleTimeString()}: ${msg}`])
   }
 
-  // 🧠 LOCAL AI SIMULATION ENGINE
+  // 🧠 REAL AI GENERATOR
   const handleAIImport = async () => {
     if (!prompt) return
-    setIsGenerating(true)
+    setIsProcessing(true)
     setLogs([])
 
     try {
       addLog("Initializing Glint Neural Engine...")
-      await new Promise(r => setTimeout(r, 800))
       
-      addLog(`Analyzing Request: "${prompt}"`)
-      await new Promise(r => setTimeout(r, 1000))
-      
-      addLog("Connecting to LLM and Global Audio Nodes...")
-      await new Promise(r => setTimeout(r, 1200))
-      
-      addLog(`Successfully extracted high-fidelity tracks.`)
-      await new Promise(r => setTimeout(r, 800))
-      
-      addLog("Generating unique metadata...")
-      await new Promise(r => setTimeout(r, 800))
-      
-      addLog("SUCCESS: Deployment complete. Saving to Library...")
+      // Calls YOUR actual backend function
+      const newPlaylist = await generatePlaylistFromBackend(prompt, addLog)
 
-      // Create the new AI Playlist
-      const newPlaylist: Playlist = {
-        id: `ai-${Date.now()}`,
-        name: `AI: ${prompt.substring(0, 15)}...`,
-        cover: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400&auto=format&fit=crop',
-        tracks: [
-          { id: `t1-${Date.now()}`, title: 'Neural Pulse', artist: 'Glint AI', albumArt: 'https://picsum.photos/seed/synth1/400/400', duration: 210, youtubeId: 'jfKfPfyJRdk' },
-          { id: `t2-${Date.now()}`, title: 'Data Stream Beta', artist: 'Glint AI', albumArt: 'https://picsum.photos/seed/synth2/400/400', duration: 185, youtubeId: 'jfKfPfyJRdk' }
-        ]
-      }
-      
+      addLog("SUCCESS: AI Deployment complete. Saving to Library...")
       onSavePlaylist(newPlaylist)
       
-      // Teleport to library
       setTimeout(() => onNavigate('library'), 1500)
 
-    } catch (error) {
-      addLog("CRITICAL ERROR: Connection failed.")
+    } catch (error: any) {
+      addLog(`CRITICAL ERROR: ${error.message || 'Backend connection failed.'}`)
     } finally {
-      setIsGenerating(false)
+      setIsProcessing(false)
     }
   }
 
-  // 🔗 URL SCRAPER SIMULATION ENGINE
+  // 🔗 REAL URL SCRAPER
   const handleUrlImport = async () => {
     if (!url.trim()) return
-    setIsImportingUrl(true)
+    setIsProcessing(true)
+    setLogs([]) // Clear terminal for scraper logs
 
-    // Simulate scraping delay
-    await new Promise(r => setTimeout(r, 1500))
+    try {
+      addLog(`Initializing Scraper for URL...`)
+      
+      // Calls YOUR actual backend function
+      const newPlaylist = await importPlaylistFromBackend(url, addLog)
 
-    const isSpotify = url.includes('spotify.com')
-    const platformName = isSpotify ? 'Spotify' : 'Platform'
+      addLog("SUCCESS: Playlist scraped successfully. Saving to Library...")
+      onSavePlaylist(newPlaylist)
+      setUrl('')
+      
+      setTimeout(() => onNavigate('library'), 1500)
 
-    const newPlaylist: Playlist = {
-      id: `imported-${Date.now()}`,
-      name: `Imported ${platformName} Mix`,
-      cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
-      tracks: [
-        { id: `imp1-${Date.now()}`, title: 'Imported Track 1', artist: 'Unknown Artist', albumArt: 'https://picsum.photos/seed/imp1/400/400', duration: 200, youtubeId: 'jfKfPfyJRdk' }
-      ]
+    } catch (error: any) {
+      addLog(`SCRAPE ERROR: ${error.message || 'Invalid URL or backend offline.'}`)
+    } finally {
+      setIsProcessing(false)
     }
-    
-    onSavePlaylist(newPlaylist)
-    setIsImportingUrl(false)
-    setUrl('')
-    onNavigate('library')
   }
 
   return (
@@ -127,15 +102,16 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
             />
             <button
               onClick={handleAIImport}
-              disabled={isGenerating || !prompt}
+              disabled={isProcessing || !prompt}
               className={`w-full py-5 rounded-full font-black uppercase tracking-widest transition-all shadow-xl ${
-                isGenerating ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-[#00e628] text-black hover:scale-[1.02] active:scale-95 shadow-[#00e628]/20'
+                isProcessing || !prompt ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-[#00e628] text-black hover:scale-[1.02] active:scale-95 shadow-[#00e628]/20'
               }`}
             >
-              {isGenerating ? 'Deploying...' : 'Generate Playlist'}
+              {isProcessing && prompt ? 'Deploying...' : 'Generate Playlist'}
             </button>
           </div>
 
+          {/* SHARED TERMINAL UI */}
           <div className="h-80 lg:h-auto bg-[#080808] border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-2xl">
             <div className="bg-white/5 px-6 py-3 border-b border-white/5 flex justify-between items-center">
               <div className="flex gap-2"><div className="w-2.5 h-2.5 rounded-full bg-red-500/20"/><div className="w-2.5 h-2.5 rounded-full bg-amber-500/20"/><div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20"/></div>
@@ -145,10 +121,10 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
             <div ref={logRef} className="p-6 font-mono text-[11px] lg:text-xs space-y-3 overflow-y-auto flex-1 scroll-smooth">
               {logs.length > 0 ? logs.map((log, i) => (
                 <div key={i} className="animate-in fade-in slide-in-from-left-2">
-                  <span className={i === logs.length - 1 ? "text-[#00e628]" : "text-white/30"}>{log}</span>
+                  <span className={i === logs.length - 1 ? (log.includes("ERROR") ? "text-red-500" : "text-[#00e628]") : "text-white/30"}>{log}</span>
                 </div>
-              )) : <p className="text-white/10 italic">Awaiting deployment instructions...</p>}
-              {isGenerating && <span className="inline-block w-2 h-4 bg-[#00e628] animate-pulse ml-2" />}
+              )) : <p className="text-white/10 italic">Awaiting deployment instructions or URLs...</p>}
+              {isProcessing && <span className="inline-block w-2 h-4 bg-[#00e628] animate-pulse ml-2" />}
             </div>
           </div>
         </div>
@@ -164,7 +140,7 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
         </div>
         
         <p className="text-white/40 font-bold mb-6 text-sm lg:text-base max-w-2xl">
-          Paste a link from Spotify, Apple Music, or YouTube. The Glint scraper will extract the metadata and rebuild the playlist in your library.
+          Paste a link from Spotify or Apple Music. The Glint scraper will extract the metadata and feed live logs to the terminal above.
         </p>
 
         <div className="flex flex-col lg:flex-row gap-4">
@@ -172,17 +148,17 @@ export default function ImportPage({ onSavePlaylist, onNavigate }: ImportPagePro
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-6 py-5 focus:ring-1 focus:ring-[#00e628] focus:border-[#00e628] text-white outline-none font-bold placeholder:text-white/20 transition-all" 
-            placeholder="https://open.spotify.com/playlist/..." 
+            placeholder="http://googleusercontent.com/spotify.com/playlist/..." 
             type="text"
           />
           <button 
             onClick={handleUrlImport}
-            disabled={!url || isImportingUrl}
+            disabled={!url || isProcessing}
             className={`px-10 py-5 rounded-2xl font-black uppercase tracking-widest transition-all ${
-              !url || isImportingUrl ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white text-black hover:scale-[1.02] active:scale-95 shadow-xl'
+              !url || isProcessing ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white text-black hover:scale-[1.02] active:scale-95 shadow-xl'
             }`}
           >
-            {isImportingUrl ? 'Scraping...' : 'Import URL'}
+            {isProcessing && url ? 'Scraping...' : 'Import URL'}
           </button>
         </div>
       </section>
